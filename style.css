@@ -359,3 +359,22 @@ strong {
 .container-content p:last-child {
     margin-bottom: 0;
 }
+.container-timestamp {
+    position: absolute;
+    bottom: 15px;
+    left: 20px;
+    right: 20px;
+    font-size: 11px;
+    color: rgba(93, 76, 55, 0.5);
+    text-align: left;
+}
+.container-metadata {
+    font-size: 13px;
+    color: rgba(93, 76, 55, 0.6);
+    margin-top: 4px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+}
+.container.expanded .container-metadata {
+    display: block;
+}

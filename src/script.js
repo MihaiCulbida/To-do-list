@@ -54,7 +54,8 @@ class TodoApp {
                     id: Date.now(),
                     title: '',
                     content: '',
-                    expanded: false
+                    expanded: false,
+                    lastModified: new Date().toISOString()
                 };
                 this.containers.push(container);
                 this.saveToStorage();
@@ -153,10 +154,50 @@ class TodoApp {
                 const container = this.containers.find(c => c.id === id);
                 if (container) {
                     container[field] = content;
+                    container.lastModified = new Date().toISOString();
                     this.saveToStorage();
+                    
+                    this.updateMetadata(id);
                 }
             }
-
+            formatDate(isoString) {
+                if (!isoString) return '';
+                const date = new Date(isoString);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                
+                if (diffMins < 1) return 'now';
+                if (diffMins < 60) return `${diffMins} min`;
+                if (diffMins < 1440) return `${Math.floor(diffMins / 60)} hours`;
+                
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = String(date.getHours()).padStart(2, '0');
+                const mins = String(date.getMinutes()).padStart(2, '0');
+                
+                return `${day}.${month}.${year} ${hours}:${mins}`;
+            }
+            
+            getCharCount(html) {
+                const temp = document.createElement('div');
+                temp.innerHTML = html;
+                return temp.textContent.trim().length;
+            }
+            updateMetadata(id) {
+                const container = this.containers.find(c => c.id === id);
+                if (!container || !container.expanded) return;
+                
+                const containerElement = document.querySelector(`[data-id="${id}"]`);
+                if (!containerElement) return;
+                
+                const metadataElement = containerElement.querySelector('.container-metadata');
+                if (metadataElement) {
+                    const charCount = this.getCharCount(container.content);
+                    metadataElement.textContent = `${this.formatDate(container.lastModified)} | ${charCount} characters`;
+                }
+            }
             updateDeleteButton() {
                 const deleteBtn = document.getElementById('deleteButton');
                 deleteBtn.classList.toggle('active', this.selectedContainer !== null);
@@ -176,7 +217,13 @@ class TodoApp {
                 
                 if (action === 'bold' && selectedText) {
                     document.execCommand('bold', false, null);
-                    this.updateContainer(this.activeContainer, 'content', contentElement.innerHTML);
+                    const container = this.containers.find(c => c.id === this.activeContainer);
+                    if (container) {
+                        container.content = contentElement.innerHTML;
+                        container.lastModified = new Date().toISOString();
+                        this.saveToStorage();
+                        this.updateMetadata(this.activeContainer);
+                    }
                 } else if (action === 'checkbox') {
                     const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
                     if (range) {
@@ -341,9 +388,27 @@ class TodoApp {
                         this.updateContainer(container.id, 'content', content.innerHTML);
                     });
                     
-                    div.appendChild(closeBtn);
-                    div.appendChild(title);
-                    div.appendChild(content);
+                    if (container.expanded) {
+                        const metadata = document.createElement('div');
+                        metadata.className = 'container-metadata';
+                        const charCount = this.getCharCount(container.content);
+                        metadata.textContent = `${this.formatDate(container.lastModified)} | ${charCount} characters`;
+                        
+                        div.appendChild(closeBtn);
+                        div.appendChild(title);
+                        div.appendChild(metadata);
+                        div.appendChild(content);
+                    } else {
+                        const timestamp = document.createElement('div');
+                        timestamp.className = 'container-timestamp';
+                        timestamp.textContent = this.formatDate(container.lastModified);
+                        
+                        div.appendChild(closeBtn);
+                        div.appendChild(title);
+                        div.appendChild(content);
+                        div.appendChild(timestamp);
+                    }
+                    
                     wrapper.appendChild(div);
                 });
             }            
