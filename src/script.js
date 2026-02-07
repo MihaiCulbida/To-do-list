@@ -224,6 +224,30 @@ class TodoApp {
                         this.saveToStorage();
                         this.updateMetadata(this.activeContainer);
                     }
+                } else if (action === 'textcolor' && selectedText) {
+                    const input = document.createElement('input');
+                    input.type = 'color';
+                    input.value = '#FF9800';
+                    input.style.position = 'absolute';
+                    input.style.opacity = '0';
+                    input.style.pointerEvents = 'none';
+                    
+                    const btn = document.querySelector('[data-action="textcolor"]');
+                    btn.appendChild(input);
+                    
+                    input.addEventListener('change', (e) => {
+                        document.execCommand('foreColor', false, e.target.value);
+                        const container = this.containers.find(c => c.id === this.activeContainer);
+                        if (container) {
+                            container.content = contentElement.innerHTML;
+                            container.lastModified = new Date().toISOString();
+                            this.saveToStorage();
+                            this.updateMetadata(this.activeContainer);
+                        }
+                        input.remove();
+                    });
+                    
+                    input.click();
                 } else if (action === 'checkbox') {
                     const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
                     if (range) {
