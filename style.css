@@ -101,6 +101,7 @@ body {
     opacity: 0.25;
     pointer-events: none;
     text-overflow: ellipsis;
+    max-height: calc(100% - 60px);
 }
 .container-content:empty:before {
     content: 'Start writing...';

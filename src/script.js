@@ -166,18 +166,22 @@ class TodoApp {
                 const now = new Date();
                 const diffMs = now - date;
                 const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                
+                const hours = String(date.getHours()).padStart(2, '0');
+                const mins = String(date.getMinutes()).padStart(2, '0');
+                const timeStr = `${hours}:${mins}`;
                 
                 if (diffMins < 1) return 'now';
                 if (diffMins < 60) return `${diffMins} min`;
-                if (diffMins < 1440) return `${Math.floor(diffMins / 60)} hours`;
+                if (diffHours < 24) return timeStr;
+                if (diffHours < 48) return `yesterday ${timeStr}`;
                 
                 const day = String(date.getDate()).padStart(2, '0');
                 const month = String(date.getMonth() + 1).padStart(2, '0');
                 const year = date.getFullYear();
-                const hours = String(date.getHours()).padStart(2, '0');
-                const mins = String(date.getMinutes()).padStart(2, '0');
                 
-                return `${day}.${month}.${year} ${hours}:${mins}`;
+                return `${day}.${month}.${year} ${timeStr}`;
             }
             
             getCharCount(html) {
@@ -275,6 +279,30 @@ class TodoApp {
                         this.saveToStorage();
                         this.updateMetadata(this.activeContainer);
                     }
+                    } else if (action === 'colorpath' && selectedText) {
+                    const input = document.createElement('input');
+                    input.type = 'color';
+                    input.value = '#FFEB3B';
+                    input.style.position = 'absolute';
+                    input.style.opacity = '0';
+                    input.style.pointerEvents = 'none';
+                    
+                    const btn = document.querySelector('[data-action="colorpath"]');
+                    btn.appendChild(input);
+                    
+                    input.addEventListener('change', (e) => {
+                        document.execCommand('backColor', false, e.target.value);
+                        const container = this.containers.find(c => c.id === this.activeContainer);
+                        if (container) {
+                            container.content = contentElement.innerHTML;
+                            container.lastModified = new Date().toISOString();
+                            this.saveToStorage();
+                            this.updateMetadata(this.activeContainer);
+                        }
+                        input.remove();
+                    });
+                    
+                    input.click();
                 } else if (action === 'checkbox') {
                     if (!selectedText) {
                         return;
@@ -313,18 +341,18 @@ class TodoApp {
                 }
             }
             removeCheckbox(checkboxItem, contentElement) {
-    const span = checkboxItem.querySelector('span');
-    if (!span) return;
-    
-    const fragment = document.createDocumentFragment();
-    while (span.firstChild) {
-        fragment.appendChild(span.firstChild);
-    }
-    
-    checkboxItem.parentNode.replaceChild(fragment, checkboxItem);
-    
-    this.attachCheckboxListeners(contentElement, this.activeContainer);
-}
+                const span = checkboxItem.querySelector('span');
+                if (!span) return;
+                
+                const fragment = document.createDocumentFragment();
+                while (span.firstChild) {
+                    fragment.appendChild(span.firstChild);
+                }
+                
+                checkboxItem.parentNode.replaceChild(fragment, checkboxItem);
+                
+                this.attachCheckboxListeners(contentElement, this.activeContainer);
+            }
             addCheckboxToSelection(element, selection) {
                 const range = selection.getRangeAt(0);
                 const selectedText = selection.toString().trim();
