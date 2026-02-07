@@ -332,11 +332,6 @@ strong {
     -webkit-user-select: text;
     -moz-user-select: text;
 }
-
-.checkbox-item.checked {
-    opacity: 0.6;
-    text-decoration: line-through;
-}
 @keyframes slideIn {
     from {
         opacity: 0;

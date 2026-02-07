@@ -248,7 +248,38 @@ class TodoApp {
                     });
                     
                     input.click();
+                } else if (action === 'italic' && selectedText) {
+                    document.execCommand('italic', false, null);
+                    const container = this.containers.find(c => c.id === this.activeContainer);
+                    if (container) {
+                        container.content = contentElement.innerHTML;
+                        container.lastModified = new Date().toISOString();
+                        this.saveToStorage();
+                        this.updateMetadata(this.activeContainer);
+                    }
+                } else if (action === 'underline' && selectedText) {
+                    document.execCommand('underline', false, null);
+                    const container = this.containers.find(c => c.id === this.activeContainer);
+                    if (container) {
+                        container.content = contentElement.innerHTML;
+                        container.lastModified = new Date().toISOString();
+                        this.saveToStorage();
+                        this.updateMetadata(this.activeContainer);
+                    }
+                } else if (action === 'strikethrough' && selectedText) {
+                    document.execCommand('strikeThrough', false, null);
+                    const container = this.containers.find(c => c.id === this.activeContainer);
+                    if (container) {
+                        container.content = contentElement.innerHTML;
+                        container.lastModified = new Date().toISOString();
+                        this.saveToStorage();
+                        this.updateMetadata(this.activeContainer);
+                    }
                 } else if (action === 'checkbox') {
+                    if (!selectedText) {
+                        return;
+                    }
+                    
                     const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
                     if (range) {
                         const isInContent = contentElement.contains(range.commonAncestorContainer);
@@ -282,12 +313,18 @@ class TodoApp {
                 }
             }
             removeCheckbox(checkboxItem, contentElement) {
-                    const text = checkboxItem.querySelector('span')?.textContent || '';
-                    const textNode = document.createTextNode(text);
-                    checkboxItem.parentNode.replaceChild(textNode, checkboxItem);
-                    
-                    this.attachCheckboxListeners(contentElement, this.activeContainer);
-            }
+    const span = checkboxItem.querySelector('span');
+    if (!span) return;
+    
+    const fragment = document.createDocumentFragment();
+    while (span.firstChild) {
+        fragment.appendChild(span.firstChild);
+    }
+    
+    checkboxItem.parentNode.replaceChild(fragment, checkboxItem);
+    
+    this.attachCheckboxListeners(contentElement, this.activeContainer);
+}
             addCheckboxToSelection(element, selection) {
                 const range = selection.getRangeAt(0);
                 const selectedText = selection.toString().trim();
@@ -319,11 +356,18 @@ class TodoApp {
             }
             
             addCheckboxes(element) {
-                const lines = element.innerText.split('\n').filter(line => line.trim());
-                if (lines.length === 0) return;
+                const originalHTML = element.innerHTML.trim();
+                if (!originalHTML) return;
+                
+                const lines = originalHTML.split('<br>').filter(line => line.trim());
+                
+                if (lines.length === 0) {
+                    lines.push(originalHTML);
+                }
                 
                 element.innerHTML = '';
-                lines.forEach(line => {
+                
+                lines.forEach(lineHTML => {
                     const div = document.createElement('div');
                     div.className = 'checkbox-item';
                     
@@ -337,11 +381,59 @@ class TodoApp {
                     });
                     
                     const label = document.createElement('span');
-                    label.textContent = line.trim();
+                    label.innerHTML = lineHTML.trim();
                     
                     div.appendChild(checkbox);
                     div.appendChild(label);
                     element.appendChild(div);
+                });
+            }
+            setupCheckboxEnterKey(element, containerId) {
+                element.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        const selection = window.getSelection();
+                        const range = selection.getRangeAt(0);
+                        const container = range.commonAncestorContainer;
+                        
+                        let checkboxItem = container.nodeType === 3 ? container.parentNode : container;
+                        while (checkboxItem && !checkboxItem.classList.contains('checkbox-item')) {
+                            checkboxItem = checkboxItem.parentNode;
+                        }
+                        
+                        if (checkboxItem && checkboxItem.classList.contains('checkbox-item')) {
+                            e.preventDefault();
+                            
+                            if (e.shiftKey) {
+                                document.execCommand('insertHTML', false, '<br>');
+                            } else {
+                                const newDiv = document.createElement('div');
+                                newDiv.className = 'checkbox-item';
+                                
+                                const checkbox = document.createElement('input');
+                                checkbox.type = 'checkbox';
+                                checkbox.setAttribute('contenteditable', 'false');
+                                checkbox.addEventListener('change', (ev) => {
+                                    ev.stopPropagation();
+                                    newDiv.classList.toggle('checked', ev.target.checked);
+                                    this.updateContainer(containerId, 'content', element.innerHTML);
+                                });
+                                
+                                const label = document.createElement('span');
+                                label.innerHTML = '<br>';
+                                
+                                newDiv.appendChild(checkbox);
+                                newDiv.appendChild(label);
+                                
+                                checkboxItem.parentNode.insertBefore(newDiv, checkboxItem.nextSibling);
+                                
+                                const newRange = document.createRange();
+                                newRange.setStart(label, 0);
+                                newRange.collapse(true);
+                                selection.removeAllRanges();
+                                selection.addRange(newRange);
+                            }
+                        }
+                    }
                 });
             }
             render() {
@@ -385,7 +477,9 @@ class TodoApp {
                     content.innerHTML = container.content;
                     
                     this.attachCheckboxListeners(content, container.id);
-                    
+                    if (container.expanded) {
+                        this.setupCheckboxEnterKey(content, container.id);
+                    }
                     if (!container.expanded) {
                         div.addEventListener('mousedown', (e) => {
                             this.handlePressStart(container.id, e);
