@@ -181,7 +181,7 @@ body {
     background: linear-gradient(135deg, #FFFEF8 0%, #FFFBF0 100%);
     border-radius: 50px;
     box-shadow: 0 8px 32px rgba(230, 200, 120, 0.3);
-    padding: 12px 24px;
+    padding: 12px;
     display: none;
     gap: 8px;
     z-index: 3000;
@@ -191,7 +191,7 @@ body {
     display: flex;
 }
 .toolbar-btn {
-    padding: 10px 18px;
+    padding: 10px 10px;
     cursor: pointer;
     border-radius: 25px;
     transition: all 0.2s;
@@ -208,9 +208,9 @@ body {
     background: linear-gradient(135deg, #FFF9E6 0%, #FFF0C8 100%);
 }
 .toolbar-btn .icon {
-    font-weight: bold;
-    color: #FFA000;
-    font-size: 16px;
+    height: 22px;
+    width: 22px;
+    filter: invert(35%)sepia(10%)saturate(500%)hue-rotate(10deg)brightness(90%)contrast(90%);
 }
 .close-btn {
     position: absolute;
