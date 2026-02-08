@@ -374,3 +374,29 @@ strong {
 .container.expanded .container-metadata {
     display: block;
 }
+.bullet-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 8px 0;
+    cursor: text;
+}
+
+.bullet-point {
+    font-size: 20px;
+    line-height: 1.6;
+    user-select: none;
+    pointer-events: none;
+    color: inherit;
+    font-weight: normal !important;
+    text-decoration: none !important;
+    font-style: normal !important;
+    background-color: transparent !important;
+}
+
+.bullet-item span:last-child {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    flex: 1;
+}

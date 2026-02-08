@@ -187,6 +187,13 @@ class TodoApp {
             getCharCount(html) {
                 const temp = document.createElement('div');
                 temp.innerHTML = html;
+                
+                const bullets = temp.querySelectorAll('.bullet-point');
+                bullets.forEach(bullet => bullet.remove());
+                
+                const checkboxes = temp.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(checkbox => checkbox.remove());
+                
                 return temp.textContent.trim().length;
             }
             updateMetadata(id) {
@@ -303,82 +310,422 @@ class TodoApp {
                     });
                     
                     input.click();
-                } else if (action === 'checkbox') {
-                    if (!selectedText) {
+            } else if (action === 'checkbox') {
+                const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+                if (range) {
+                    const isInContent = contentElement.contains(range.commonAncestorContainer);
+                    
+                    if (!isInContent) {
                         return;
                     }
-                    
-                    const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-                    if (range) {
-                        const isInContent = contentElement.contains(range.commonAncestorContainer);
-                        
-                        if (!isInContent) {
-                            return;
-                        }
-                    }
-                    
-                    if (selectedText) {
-                        let node = range.commonAncestorContainer;
-                        let parentCheckbox = null;
-                        
-                        while (node && node !== contentElement) {
-                            if (node.nodeType === 1 && node.classList && node.classList.contains('checkbox-item')) {
-                                parentCheckbox = node;
-                                break;
-                            }
-                            node = node.parentNode;
-                        }
-                        
-                        if (parentCheckbox) {
-                            this.removeCheckbox(parentCheckbox, contentElement);
-                        } else {
-                            this.addCheckboxToSelection(contentElement, selection);
-                        }
-                    } else {
-                        this.addCheckboxes(contentElement);
-                    }
-                    this.updateContainer(this.activeContainer, 'content', contentElement.innerHTML);
                 }
+                
+                if (selectedText) {
+                    let node = range.commonAncestorContainer;
+                    let parentCheckbox = null;
+                    
+                    while (node && node !== contentElement) {
+                        if (node.nodeType === 1 && node.classList && node.classList.contains('checkbox-item')) {
+                            parentCheckbox = node;
+                            break;
+                        }
+                        node = node.parentNode;
+                    }
+                    
+                    if (parentCheckbox) {
+                        this.removeCheckbox(parentCheckbox, contentElement);
+                    } else {
+                        this.addCheckboxToSelection(contentElement, selection);
+                    }
+                } else {
+                    this.addCheckboxes(contentElement);
+                }
+                this.updateContainer(this.activeContainer, 'content', contentElement.innerHTML);
+            } else if (action === 'dotlist') {
+                const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+                if (range) {
+                    const isInContent = contentElement.contains(range.commonAncestorContainer);
+                    
+                    if (!isInContent) {
+                        return;
+                    }
+                }
+                
+                if (selectedText) {
+                    let node = range.commonAncestorContainer;
+                    let parentBullet = null;
+                    
+                    while (node && node !== contentElement) {
+                        if (node.nodeType === 1 && node.classList && node.classList.contains('bullet-item')) {
+                            parentBullet = node;
+                            break;
+                        }
+                        node = node.parentNode;
+                    }
+                    
+                    if (parentBullet) {
+                        this.removeBullet(parentBullet, contentElement);
+                    } else {
+                        this.addBulletToSelection(contentElement, selection);
+                    }
+                } else {
+                    this.addBullets(contentElement);
+                }
+                this.updateContainer(this.activeContainer, 'content', contentElement.innerHTML);
+            }
             }
             removeCheckbox(checkboxItem, contentElement) {
-                const span = checkboxItem.querySelector('span');
-                if (!span) return;
-                
-                const fragment = document.createDocumentFragment();
-                while (span.firstChild) {
-                    fragment.appendChild(span.firstChild);
-                }
-                
-                checkboxItem.parentNode.replaceChild(fragment, checkboxItem);
-                
-                this.attachCheckboxListeners(contentElement, this.activeContainer);
-            }
+                 const span = checkboxItem.querySelector('span');
+                 if (!span) return;
+                 
+                 const textContent = span.textContent || span.innerText;
+                 const textNode = document.createTextNode(textContent);
+                 
+                 const br = document.createElement('br');
+                 
+                 const parent = checkboxItem.parentNode;
+                 parent.insertBefore(textNode, checkboxItem);
+                 parent.insertBefore(br, checkboxItem);
+                 
+                 checkboxItem.remove();
+             }
+             
+             removeBullet(bulletItem, contentElement) {
+                 const span = bulletItem.querySelector('span:last-child');
+                 if (!span) return;
+                 
+                 const textContent = span.textContent || span.innerText;
+                 const textNode = document.createTextNode(textContent);
+                 
+                 const br = document.createElement('br');
+                 
+                 const parent = bulletItem.parentNode;
+                 parent.insertBefore(textNode, bulletItem);
+                 parent.insertBefore(br, bulletItem);
+                 
+                 bulletItem.remove();
+             }
+             preventBulletFormatting(element) {
+                 element.addEventListener('input', (e) => {
+                     const bullets = element.querySelectorAll('.bullet-point');
+                     bullets.forEach(bullet => {
+                         bullet.style.fontWeight = 'normal';
+                         bullet.style.textDecoration = 'none';
+                         bullet.style.fontStyle = 'normal';
+                         bullet.style.backgroundColor = 'transparent';
+                         
+                         if (bullet.parentElement) {
+                             const computedColor = window.getComputedStyle(bullet.parentElement.querySelector('span:last-child')).color;
+                             bullet.style.color = computedColor;
+                         }
+                     });
+                 });
+             }
+             
+             addBulletToSelection(element, selection) {
+                 const range = selection.getRangeAt(0);
+                 let selectedText = selection.toString().trim();
+                 
+                 if (!selectedText) return;
+                 
+                 selectedText = selectedText.replace(/^•\s*/gm, '').trim();
+                 
+                 const startContainer = range.startContainer;
+                 const endContainer = range.endContainer;
+                 
+                 let startNode = startContainer.nodeType === 3 ? startContainer.parentNode : startContainer;
+                 if (startNode.classList && startNode.classList.contains('bullet-point')) {
+                     return;
+                 }
+                 
+                 let endNode = endContainer.nodeType === 3 ? endContainer.parentNode : endContainer;
+                 if (endNode.classList && endNode.classList.contains('bullet-point')) {
+                     return;
+                 }
+                 
+                 let startItem = startContainer.nodeType === 3 ? startContainer.parentNode : startContainer;
+                 while (startItem && startItem !== element && !startItem.classList.contains('checkbox-item') && !startItem.classList.contains('bullet-item')) {
+                     startItem = startItem.parentNode;
+                 }
+                 
+                 let endItem = endContainer.nodeType === 3 ? endContainer.parentNode : endContainer;
+                 while (endItem && endItem !== element && !endItem.classList.contains('checkbox-item') && !endItem.classList.contains('bullet-item')) {
+                     endItem = endItem.parentNode;
+                 }
+                 
+                 const itemsToRemove = [];
+                 const allItems = element.querySelectorAll('.checkbox-item, .bullet-item');
+                 
+                 allItems.forEach(item => {
+                     if (range.intersectsNode(item)) {
+                         const label = item.querySelector('span:last-child');
+                         if (label && range.intersectsNode(label)) {
+                             itemsToRemove.push(item);
+                         }
+                     }
+                 });
+                 
+                 if (itemsToRemove.length > 0) {
+                     const allAreBullets = itemsToRemove.every(item => item.classList.contains('bullet-item'));
+                     
+                     if (allAreBullets) {
+                         itemsToRemove.forEach(item => {
+                             this.removeBullet(item, element);
+                         });
+                         return;
+                     }
+                     
+                     const lines = selectedText.split('\n').filter(line => line.trim());
+                     
+                     itemsToRemove.forEach((item, index) => {
+                         const next = item.nextSibling;
+                         const parent = item.parentNode;
+                         const lineText = lines[index] ? lines[index].trim() : '';
+                         
+                         const div = document.createElement('div');
+                         div.className = 'bullet-item';
+                         
+                         const bullet = document.createElement('span');
+                         bullet.className = 'bullet-point';
+                         bullet.textContent = '•';
+                         bullet.setAttribute('contenteditable', 'false');
+                         
+                         const label = document.createElement('span');
+                         label.textContent = lineText;
+                         
+                         div.appendChild(bullet);
+                         div.appendChild(label);
+                         
+                         parent.replaceChild(div, item);
+                         
+                         if (next && next.nodeType === 3 && next.textContent.trim() === '') {
+                             next.remove();
+                         }
+                     });
+                 } else {
+                     range.deleteContents();
+                     
+                     const lines = selectedText.split('\n').filter(line => line.trim());
+                     const fragment = document.createDocumentFragment();
+                     
+                     lines.forEach((line) => {
+                         const div = document.createElement('div');
+                         div.className = 'bullet-item';
+                         
+                         const bullet = document.createElement('span');
+                         bullet.className = 'bullet-point';
+                         bullet.textContent = '•';
+                         bullet.setAttribute('contenteditable', 'false');
+                         
+                         const label = document.createElement('span');
+                         label.textContent = line.trim();
+                         
+                         div.appendChild(bullet);
+                         div.appendChild(label);
+                         fragment.appendChild(div);
+                     });
+                     
+                     range.insertNode(fragment);
+                 }
+                 
+                 selection.removeAllRanges();
+             }
+             
+             addBullets(element) {
+                 const originalHTML = element.innerHTML.trim();
+                 if (!originalHTML) return;
+                 
+                 const lines = originalHTML.split('<br>').filter(line => line.trim());
+                 
+                 if (lines.length === 0) {
+                     lines.push(originalHTML);
+                 }
+                 
+                 element.innerHTML = '';
+                 
+                 lines.forEach(lineHTML => {
+                     const div = document.createElement('div');
+                     div.className = 'bullet-item';
+                     
+                     const bullet = document.createElement('span');
+                     bullet.className = 'bullet-point';
+                     bullet.textContent = '•';
+                     bullet.setAttribute('contenteditable', 'false');
+                     
+                     const label = document.createElement('span');
+                     label.innerHTML = lineHTML.trim();
+                     
+                     div.appendChild(bullet);
+                     div.appendChild(label);
+                     element.appendChild(div);
+                 });
+             }
+             
+             setupBulletEnterKey(element, containerId) {
+                 element.addEventListener('keydown', (e) => {
+                     if (e.key === 'Enter') {
+                         const selection = window.getSelection();
+                         const range = selection.getRangeAt(0);
+                         const container = range.commonAncestorContainer;
+                         
+                         let bulletItem = container.nodeType === 3 ? container.parentNode : container;
+                         while (bulletItem && !bulletItem.classList.contains('bullet-item')) {
+                             bulletItem = bulletItem.parentNode;
+                         }
+                         
+                         if (bulletItem && bulletItem.classList.contains('bullet-item')) {
+                             e.preventDefault();
+                             
+                             if (e.shiftKey) {
+                                 document.execCommand('insertHTML', false, '<br>');
+                             } else {
+                                 const label = bulletItem.querySelector('span:last-child');
+                                 const textAfterCursor = this.getTextAfterCursor(range, label);
+                                 
+                                 if (textAfterCursor) {
+                                     this.removeTextAfterCursor(range, label);
+                                 }
+                                 
+                                 const newDiv = document.createElement('div');
+                                 newDiv.className = 'bullet-item';
+                                 
+                                 const bullet = document.createElement('span');
+                                 bullet.className = 'bullet-point';
+                                 bullet.textContent = '•';
+                                 bullet.setAttribute('contenteditable', 'false');
+                                 
+                                 const newLabel = document.createElement('span');
+                                 newLabel.innerHTML = textAfterCursor || '<br>';
+                                 
+                                 newDiv.appendChild(bullet);
+                                 newDiv.appendChild(newLabel);
+                                 
+                                 bulletItem.parentNode.insertBefore(newDiv, bulletItem.nextSibling);
+                                 
+                                 const newRange = document.createRange();
+                                 newRange.setStart(newLabel, 0);
+                                 newRange.collapse(true);
+                                 selection.removeAllRanges();
+                                 selection.addRange(newRange);
+                             }
+                         }
+                     }
+                 });
+             }
+
             addCheckboxToSelection(element, selection) {
                 const range = selection.getRangeAt(0);
-                const selectedText = selection.toString().trim();
+                let selectedText = selection.toString().trim();
                 
                 if (!selectedText) return;
                 
-                const div = document.createElement('div');
-                div.className = 'checkbox-item';
+                selectedText = selectedText.replace(/^•\s*/gm, '').trim();
                 
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.setAttribute('contenteditable', 'false'); 
-                checkbox.addEventListener('change', (e) => {
-                    e.stopPropagation();
-                    div.classList.toggle('checked', e.target.checked);
-                    this.updateContainer(this.activeContainer, 'content', element.innerHTML);
+                const startContainer = range.startContainer;
+                const endContainer = range.endContainer;
+                
+                let startNode = startContainer.nodeType === 3 ? startContainer.parentNode : startContainer;
+                if (startNode.classList && startNode.classList.contains('bullet-point')) {
+                    return;
+                }
+                
+                let endNode = endContainer.nodeType === 3 ? endContainer.parentNode : endContainer;
+                if (endNode.classList && endNode.classList.contains('bullet-point')) {
+                    return;
+                }
+                
+                let startItem = startContainer.nodeType === 3 ? startContainer.parentNode : startContainer;
+                while (startItem && startItem !== element && !startItem.classList.contains('checkbox-item') && !startItem.classList.contains('bullet-item')) {
+                    startItem = startItem.parentNode;
+                }
+                
+                let endItem = endContainer.nodeType === 3 ? endContainer.parentNode : endContainer;
+                while (endItem && endItem !== element && !endItem.classList.contains('checkbox-item') && !endItem.classList.contains('bullet-item')) {
+                    endItem = endItem.parentNode;
+                }
+                
+                const itemsToRemove = [];
+                const allItems = element.querySelectorAll('.checkbox-item, .bullet-item');
+                
+                allItems.forEach(item => {
+                    if (range.intersectsNode(item)) {
+                        const label = item.querySelector('span:last-child');
+                        if (label && range.intersectsNode(label)) {
+                            itemsToRemove.push(item);
+                        }
+                    }
                 });
                 
-                const label = document.createElement('span');
-                label.textContent = selectedText;
-                
-                div.appendChild(checkbox);
-                div.appendChild(label);
-                
-                range.deleteContents();
-                range.insertNode(div);
+                if (itemsToRemove.length > 0) {
+                    const allAreCheckboxes = itemsToRemove.every(item => item.classList.contains('checkbox-item'));
+                    
+                    if (allAreCheckboxes) {
+                        itemsToRemove.forEach(item => {
+                            this.removeCheckbox(item, element);
+                        });
+                        return;
+                    }
+                    
+                    const lines = selectedText.split('\n').filter(line => line.trim());
+                    
+                    itemsToRemove.forEach((item, index) => {
+                        const next = item.nextSibling;
+                        const parent = item.parentNode;
+                        const lineText = lines[index] ? lines[index].trim() : '';
+                        
+                        const div = document.createElement('div');
+                        div.className = 'checkbox-item';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.setAttribute('contenteditable', 'false');
+                        checkbox.addEventListener('change', (e) => {
+                            e.stopPropagation();
+                            div.classList.toggle('checked', e.target.checked);
+                            this.updateContainer(this.activeContainer, 'content', element.innerHTML);
+                        });
+                        
+                        const label = document.createElement('span');
+                        label.textContent = lineText;
+                        
+                        div.appendChild(checkbox);
+                        div.appendChild(label);
+                        
+                        parent.replaceChild(div, item);
+                        
+                        if (next && next.nodeType === 3 && next.textContent.trim() === '') {
+                            next.remove();
+                        }
+                    });
+                } else {
+                    range.deleteContents();
+                    
+                    const lines = selectedText.split('\n').filter(line => line.trim());
+                    const fragment = document.createDocumentFragment();
+                    
+                    lines.forEach((line) => {
+                        const div = document.createElement('div');
+                        div.className = 'checkbox-item';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.setAttribute('contenteditable', 'false');
+                        checkbox.addEventListener('change', (e) => {
+                            e.stopPropagation();
+                            div.classList.toggle('checked', e.target.checked);
+                            this.updateContainer(this.activeContainer, 'content', element.innerHTML);
+                        });
+                        
+                        const label = document.createElement('span');
+                        label.textContent = line.trim();
+                        
+                        div.appendChild(checkbox);
+                        div.appendChild(label);
+                        fragment.appendChild(div);
+                    });
+                    
+                    range.insertNode(fragment);
+                }
                 
                 selection.removeAllRanges();
             }
@@ -417,53 +764,78 @@ class TodoApp {
                 });
             }
             setupCheckboxEnterKey(element, containerId) {
-                element.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        const selection = window.getSelection();
-                        const range = selection.getRangeAt(0);
-                        const container = range.commonAncestorContainer;
+            element.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const selection = window.getSelection();
+                    const range = selection.getRangeAt(0);
+                    const container = range.commonAncestorContainer;
+                    
+                    let checkboxItem = container.nodeType === 3 ? container.parentNode : container;
+                    while (checkboxItem && !checkboxItem.classList.contains('checkbox-item')) {
+                        checkboxItem = checkboxItem.parentNode;
+                    }
+                    
+                    if (checkboxItem && checkboxItem.classList.contains('checkbox-item')) {
+                        e.preventDefault();
                         
-                        let checkboxItem = container.nodeType === 3 ? container.parentNode : container;
-                        while (checkboxItem && !checkboxItem.classList.contains('checkbox-item')) {
-                            checkboxItem = checkboxItem.parentNode;
-                        }
-                        
-                        if (checkboxItem && checkboxItem.classList.contains('checkbox-item')) {
-                            e.preventDefault();
+                        if (e.shiftKey) {
+                            document.execCommand('insertHTML', false, '<br>');
+                        } else {
+                            const label = checkboxItem.querySelector('span');
+                            const textAfterCursor = this.getTextAfterCursor(range, label);
                             
-                            if (e.shiftKey) {
-                                document.execCommand('insertHTML', false, '<br>');
-                            } else {
-                                const newDiv = document.createElement('div');
-                                newDiv.className = 'checkbox-item';
-                                
-                                const checkbox = document.createElement('input');
-                                checkbox.type = 'checkbox';
-                                checkbox.setAttribute('contenteditable', 'false');
-                                checkbox.addEventListener('change', (ev) => {
-                                    ev.stopPropagation();
-                                    newDiv.classList.toggle('checked', ev.target.checked);
-                                    this.updateContainer(containerId, 'content', element.innerHTML);
-                                });
-                                
-                                const label = document.createElement('span');
-                                label.innerHTML = '<br>';
-                                
-                                newDiv.appendChild(checkbox);
-                                newDiv.appendChild(label);
-                                
-                                checkboxItem.parentNode.insertBefore(newDiv, checkboxItem.nextSibling);
-                                
-                                const newRange = document.createRange();
-                                newRange.setStart(label, 0);
-                                newRange.collapse(true);
-                                selection.removeAllRanges();
-                                selection.addRange(newRange);
+                            if (textAfterCursor) {
+                                this.removeTextAfterCursor(range, label);
                             }
+                            
+                            const newDiv = document.createElement('div');
+                            newDiv.className = 'checkbox-item';
+                            
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.setAttribute('contenteditable', 'false');
+                            checkbox.addEventListener('change', (ev) => {
+                                ev.stopPropagation();
+                                newDiv.classList.toggle('checked', ev.target.checked);
+                                this.updateContainer(containerId, 'content', element.innerHTML);
+                            });
+                            
+                            const newLabel = document.createElement('span');
+                            newLabel.innerHTML = textAfterCursor || '<br>';
+                            
+                            newDiv.appendChild(checkbox);
+                            newDiv.appendChild(newLabel);
+                            
+                            checkboxItem.parentNode.insertBefore(newDiv, checkboxItem.nextSibling);
+                            
+                            const newRange = document.createRange();
+                            newRange.setStart(newLabel, 0);
+                            newRange.collapse(true);
+                            selection.removeAllRanges();
+                            selection.addRange(newRange);
                         }
                     }
-                });
-            }
+                }
+            });
+        }
+        
+        getTextAfterCursor(range, label) {
+            const clonedRange = range.cloneRange();
+            clonedRange.selectNodeContents(label);
+            clonedRange.setStart(range.endContainer, range.endOffset);
+            
+            const fragment = clonedRange.cloneContents();
+            const div = document.createElement('div');
+            div.appendChild(fragment);
+            return div.innerHTML;
+        }
+        
+        removeTextAfterCursor(range, label) {
+            const clonedRange = range.cloneRange();
+            clonedRange.selectNodeContents(label);
+            clonedRange.setStart(range.endContainer, range.endOffset);
+            clonedRange.deleteContents();
+        }
             render() {
                 const wrapper = document.getElementById('containersWrapper');
                 const overlay = document.getElementById('overlay');
@@ -507,6 +879,8 @@ class TodoApp {
                     this.attachCheckboxListeners(content, container.id);
                     if (container.expanded) {
                         this.setupCheckboxEnterKey(content, container.id);
+                        this.setupBulletEnterKey(content, container.id);
+                        this.preventBulletFormatting(content);
                     }
                     if (!container.expanded) {
                         div.addEventListener('mousedown', (e) => {
