@@ -219,11 +219,33 @@ class TodoApp {
 
             updateToolbar() {
                 const toolbar = document.getElementById('toolbar');
-                toolbar.classList.toggle('show', this.activeContainer !== null);
+                
+                if (this.activeContainer !== null) {
+                    toolbar.style.display = 'flex';
+                    
+                    setTimeout(() => {
+                        toolbar.classList.add('show');
+                    }, 700);
+                } else {
+                    toolbar.classList.remove('show');
+                    
+                    setTimeout(() => {
+                        if (!this.activeContainer) {
+                            toolbar.style.display = 'none';
+                        }
+                    }, 500);
+                }
             }
             handleToolbarAction(action) {
                 if (!this.activeContainer) return;
                 
+                if (action === 'text') {
+                    const textButtons = document.querySelectorAll('.toolbar-btn.text-formatting');
+                    textButtons.forEach(btn => {
+                        btn.classList.toggle('visible');
+                    });
+                    return;
+                }
                 const containerElement = document.querySelector(`[data-id="${this.activeContainer}"]`);
                 const contentElement = containerElement.querySelector('.container-content');
                 const selection = window.getSelection();
