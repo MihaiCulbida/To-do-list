@@ -295,6 +295,11 @@ class TodoApp {
                     }
                 } else if (action === 'underline' && selectedText) {
                     document.execCommand('underline', false, null);
+                    const underlines = contentElement.querySelectorAll('u');
+                    underlines.forEach(u => {
+                        u.style.textDecorationColor = 'currentColor';
+                    });
+                    
                     const container = this.containers.find(c => c.id === this.activeContainer);
                     if (container) {
                         container.content = contentElement.innerHTML;
@@ -304,6 +309,11 @@ class TodoApp {
                     }
                 } else if (action === 'strikethrough' && selectedText) {
                     document.execCommand('strikeThrough', false, null);
+                    const strikes = contentElement.querySelectorAll('strike, s');
+                    strikes.forEach(s => {
+                        s.style.textDecorationColor = 'currentColor';
+                    });
+                
                     const container = this.containers.find(c => c.id === this.activeContainer);
                     if (container) {
                         container.content = contentElement.innerHTML;
@@ -311,7 +321,7 @@ class TodoApp {
                         this.saveToStorage();
                         this.updateMetadata(this.activeContainer);
                     }
-                    } else if (action === 'colorpath' && selectedText) {
+                } else if (action === 'colorpath' && selectedText) {
                     const input = document.createElement('input');
                     input.type = 'color';
                     input.value = '#FFEB3B';
