@@ -93,6 +93,9 @@ class TodoApp {
                     lastModified: new Date().toISOString()
                 };
                 this.containers.push(container);
+                if (this.currentFolderId) {
+                    this.updateFolderTimestamps(this.currentFolderId);
+                }
                 this.saveToStorage();
                 this.render();
                 this.updateEmptyState();
@@ -117,6 +120,9 @@ class TodoApp {
                     lastModified: new Date().toISOString()
                 };
                 this.containers.push(folder);
+                if (this.currentFolderId) {
+                    this.updateFolderTimestamps(this.currentFolderId);
+                }
                 this.saveToStorage();
                 this.render();
                 this.updateEmptyState();
@@ -283,6 +289,7 @@ class TodoApp {
 
             deleteContainer(id) {
                 const container = this.containers.find(c => c.id === id);
+                const parentId = container ? container.parentId : null;  
                 
                 if (container && container.type === 'folder') {
                     const childContainers = this.containers.filter(c => c.parentId === id);
@@ -293,6 +300,11 @@ class TodoApp {
                 
                 this.containers = this.containers.filter(c => c.id !== id);
                 this.selectedContainer = null;
+                
+                if (parentId) {
+                    this.updateFolderTimestamps(parentId);
+                }
+                
                 this.saveToStorage();
                 this.render();
                 this.updateEmptyState();
@@ -329,7 +341,55 @@ class TodoApp {
                     this.saveToStorage();
                     
                     this.updateMetadata(id);
+                    
+                    if (container.parentId) {
+                        this.updateFolderTimestamps(container.parentId);
+                    }
                 }
+            }
+            updateFolderTimestamps(folderId) {
+                const folder = this.containers.find(c => c.id === folderId);
+                if (!folder) return;
+                
+                const now = new Date().toISOString();
+                folder.lastModified = now;
+                
+                if (folder.parentId) {
+                    this.updateFolderTimestamps(folder.parentId);
+                }
+            }
+            
+            getLastModifiedInFolder(folderId) {
+                const children = this.containers.filter(c => c.parentId === folderId);
+                
+                if (children.length === 0) {
+                    const folder = this.containers.find(c => c.id === folderId);
+                    return folder ? folder.lastModified : null;
+                }
+                
+                let latestTime = null;
+                
+                children.forEach(child => {
+                    let childTime;
+                    if (child.type === 'folder') {
+                        childTime = this.getLastModifiedInFolder(child.id);
+                    } else {
+                        childTime = child.lastModified;
+                    }
+                    
+                    if (!latestTime || (childTime && new Date(childTime) > new Date(latestTime))) {
+                        latestTime = childTime;
+                    }
+                });
+                
+                const folder = this.containers.find(c => c.id === folderId);
+                if (folder && folder.lastModified) {
+                    if (!latestTime || new Date(folder.lastModified) > new Date(latestTime)) {
+                        latestTime = folder.lastModified;
+                    }
+                }
+                
+                return latestTime;
             }
             formatDate(isoString) {
                 if (!isoString) return '';
@@ -1452,7 +1512,8 @@ class TodoApp {
                         
                         const timestamp = document.createElement('div');
                         timestamp.className = 'container-timestamp';
-                        timestamp.textContent = this.formatDate(container.lastModified);
+                        const lastModified = this.getLastModifiedInFolder(container.id);
+                        timestamp.textContent = this.formatDate(lastModified || container.lastModified);
                         
                         div.appendChild(title);
                         div.appendChild(folderIcon);
