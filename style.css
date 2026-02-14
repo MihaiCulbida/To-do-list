@@ -104,7 +104,11 @@ body {
     text-overflow: ellipsis;
     max-height: calc(100% - 60px);
 }
-
+.container:not(.expanded).content-hidden .container-content {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+}
 .container-content:empty:before {
     content: 'Start writing...';
     color: rgba(200, 170, 100, 0.4);
@@ -681,4 +685,46 @@ strong {
     width: 24px;
     height: 24px;
     filter: saturate(0.5) brightness(0.97);
+}
+
+.hide-content-button {
+    position: fixed;
+    bottom: 30px;
+    right: 190px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid rgba(230, 200, 120, 0.4);
+    color: #6D5C41;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(230, 200, 120, 0.25);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.hide-content-button.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.hide-content-button.active:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 24px rgba(230, 200, 120, 0.4);
+    border-color: rgba(255, 160, 0, 0.6);
+}
+
+.hide-content-button.active:active {
+    transform: scale(0.95);
+}
+
+#hideContentImage {
+    width: 30px;
+    height: 30px;
 }

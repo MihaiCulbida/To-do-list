@@ -7,11 +7,13 @@ class TodoApp {
                 this.pressTimer = null;
                 this.currentFolderId = null; 
                 this.folderHistory = [];
+                this.hiddenContents = new Set();
                 this.init();
             }
 
             init() {
                 this.loadFromStorage();
+                this.loadHiddenContents();
                 this.setupEventListeners();
                 this.render();
                 this.updateEmptyState();
@@ -43,6 +45,12 @@ class TodoApp {
                 document.getElementById('deleteButton').addEventListener('click', () => {
                     if (this.selectedContainer) {
                         this.showConfirmDialog();
+                    }
+                });
+
+                document.getElementById('hideContentButton').addEventListener('click', () => {
+                    if (this.selectedContainer) {
+                        this.toggleContentVisibility(this.selectedContainer);
                     }
                 });
             
@@ -248,6 +256,7 @@ class TodoApp {
                 }
                 
                 this.updateDeleteButton();
+                this.updateHideContentButton();
                 this.render();
             }
 
@@ -447,7 +456,35 @@ class TodoApp {
                 const deleteBtn = document.getElementById('deleteButton');
                 deleteBtn.classList.toggle('active', this.selectedContainer !== null);
             }
-
+            updateHideContentButton() {
+                const hideBtn = document.getElementById('hideContentButton');
+                const hideImg = document.getElementById('hideContentImage');
+                
+                if (this.selectedContainer) {
+                    const container = this.containers.find(c => c.id === this.selectedContainer);
+                    const isFolder = container && container.type === 'folder';
+                    
+                    if (!isFolder) {
+                        hideBtn.classList.add('active');
+                        const isHidden = this.hiddenContents.has(this.selectedContainer);
+                        hideImg.src = isHidden ? 'img/visible1.png' : 'img/visible.png';
+                    } else {
+                        hideBtn.classList.remove('active');
+                    }
+                } else {
+                    hideBtn.classList.remove('active');
+                }
+            }
+            toggleContentVisibility(id) {
+                if (this.hiddenContents.has(id)) {
+                    this.hiddenContents.delete(id);
+                } else {
+                    this.hiddenContents.add(id);
+                }
+                this.saveHiddenContents();
+                this.render();
+                this.updateHideContentButton();
+            }
             updateToolbar() {
                 const toolbar = document.getElementById('toolbar');
                 
@@ -1468,7 +1505,8 @@ class TodoApp {
                     const isSelected = this.selectedContainer === container.id;
                     const isFolder = container.type === 'folder';
                     
-                    div.className = `container ${isFolder ? 'folder' : ''} ${container.expanded ? 'expanded' : ''} ${isSelected ? 'selected' : ''}`;
+                    const isHidden = this.hiddenContents.has(container.id);
+                    div.className = `container ${isFolder ? 'folder' : ''} ${container.expanded ? 'expanded' : ''} ${isSelected ? 'selected' : ''} ${isHidden ? 'content-hidden' : ''}`;
                     div.dataset.id = container.id;
                     
                     const closeBtn = document.createElement('button');
@@ -1700,6 +1738,17 @@ class TodoApp {
                             c.parentId = null; 
                         }
                     });
+                }
+            }
+
+            saveHiddenContents() {
+                localStorage.setItem('hiddenContents', JSON.stringify([...this.hiddenContents]));
+            }
+            
+            loadHiddenContents() {
+                const saved = localStorage.getItem('hiddenContents');
+                if (saved) {
+                    this.hiddenContents = new Set(JSON.parse(saved));
                 }
             }
         }
