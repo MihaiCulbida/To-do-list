@@ -728,3 +728,69 @@ strong {
     width: 30px;
     height: 30px;
 }
+
+.folder-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 10px;
+    margin-top: 10px;
+}
+
+.folder-preview-item {
+    width: calc(50% - 4px);
+    height: 70px;
+    background: linear-gradient(135deg, #FFFEF8 0%, #FFFBF0 100%);
+    border: 1.5px solid rgba(230, 200, 120, 0.4);
+    border-radius: 10px;
+    padding: 8px;
+    box-shadow: 0 2px 8px rgba(230, 200, 120, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.folder-preview-item.is-folder {
+    background: linear-gradient(135deg, #FFF9E6 0%, #FFF4D0 100%);
+}
+
+.folder-preview-item-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: #5D4C37;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.9;
+}
+
+.folder-preview-item-content {
+    font-size: 8px;
+    line-height: 1.4;
+    color: rgba(93, 76, 55, 0.25);
+    overflow: hidden;
+    display: -webkit-box;
+    flex: 1;
+}
+
+.folder-preview-item-icon {
+    width: 24px;
+    height: 24px;
+    margin: 8px auto 4px auto;
+    opacity: 0.8;
+}
+
+.container.folder.has-content .folder-icon {
+    display: none;
+}
+
+.container.folder.content-hidden .folder-preview {
+    display: none;
+}
+
+.container.folder.content-hidden .folder-icon {
+    display: block;
+    margin: 20px auto;
+}

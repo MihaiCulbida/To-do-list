@@ -128,10 +128,12 @@ class TodoApp {
                     lastModified: new Date().toISOString()
                 };
                 this.containers.push(folder);
+                this.hiddenContents.add(folder.id);
                 if (this.currentFolderId) {
                     this.updateFolderTimestamps(this.currentFolderId);
                 }
                 this.saveToStorage();
+                this.saveHiddenContents();
                 this.render();
                 this.updateEmptyState();
             }
@@ -400,6 +402,12 @@ class TodoApp {
                 
                 return latestTime;
             }
+
+            getFolderChildren(folderId, limit = 4) {
+                return this.containers
+                    .filter(c => c.parentId === folderId)
+                    .slice(0, limit);
+            }
             formatDate(isoString) {
                 if (!isoString) return '';
                 const date = new Date(isoString);
@@ -464,12 +472,20 @@ class TodoApp {
                     const container = this.containers.find(c => c.id === this.selectedContainer);
                     const isFolder = container && container.type === 'folder';
                     
-                    if (!isFolder) {
+                    if (isFolder) {
+                        const hasContent = this.containers.some(c => c.parentId === this.selectedContainer);
+                        
+                        if (hasContent) {
+                            hideBtn.classList.add('active');
+                            const isHidden = this.hiddenContents.has(this.selectedContainer);
+                            hideImg.src = isHidden ? 'img/visible1.png' : 'img/visible.png';
+                        } else {
+                            hideBtn.classList.remove('active');
+                        }
+                    } else {
                         hideBtn.classList.add('active');
                         const isHidden = this.hiddenContents.has(this.selectedContainer);
                         hideImg.src = isHidden ? 'img/visible1.png' : 'img/visible.png';
-                    } else {
-                        hideBtn.classList.remove('active');
                     }
                 } else {
                     hideBtn.classList.remove('active');
@@ -1544,18 +1560,58 @@ class TodoApp {
                     });
                     
                     if (isFolder && !container.expanded) {
+                        const folderChildren = this.getFolderChildren(container.id, 4);
+                        const hasContent = folderChildren.length > 0;
+                        
+                        if (hasContent) {
+                            div.classList.add('has-content');
+                        }
+                        
                         const folderIcon = document.createElement('img');
                         folderIcon.src = 'img/folder.png';
                         folderIcon.className = 'folder-icon';
                         
-                        const timestamp = document.createElement('div');
-                        timestamp.className = 'container-timestamp';
-                        const lastModified = this.getLastModifiedInFolder(container.id);
-                        timestamp.textContent = this.formatDate(lastModified || container.lastModified);
+                        if (hasContent && !isHidden) {
+                        const preview = document.createElement('div');
+                        preview.className = 'folder-preview';
+                        
+                        folderChildren.forEach(child => {
+                            const previewItem = document.createElement('div');
+                            previewItem.className = `folder-preview-item ${child.type === 'folder' ? 'is-folder' : ''}`;
+                            
+                            const previewTitle = document.createElement('div');
+                            previewTitle.className = 'folder-preview-item-title';
+                            previewTitle.textContent = child.title || (child.type === 'folder' ? 'Untitled Folder' : 'Untitled');
+                            
+                            previewItem.appendChild(previewTitle);
+                            
+                            if (child.type === 'folder') {
+                                const icon = document.createElement('img');
+                                icon.src = 'img/folder.png';
+                                icon.className = 'folder-preview-item-icon';
+                                previewItem.appendChild(icon);
+                            } else {
+                                const previewContent = document.createElement('div');
+                                previewContent.className = 'folder-preview-item-content';
+                                previewContent.innerHTML = child.content || 'Empty';
+                                previewItem.appendChild(previewContent);
+                            }
+                            
+                            preview.appendChild(previewItem);
+                        });
                         
                         div.appendChild(title);
+                        div.appendChild(preview);
+                    } else {
+                        div.appendChild(title);
                         div.appendChild(folderIcon);
-                        div.appendChild(timestamp);
+                    }
+                        
+                    const timestamp = document.createElement('div');
+                    timestamp.className = 'container-timestamp';
+                    const lastModified = this.getLastModifiedInFolder(container.id);
+                    timestamp.textContent = this.formatDate(lastModified || container.lastModified);
+                    div.appendChild(timestamp);
                         
                         div.addEventListener('mousedown', (e) => {
                             if (e.target === title || title.contains(e.target)) {
