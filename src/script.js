@@ -235,12 +235,6 @@ class TodoApp {
         });
     }
 
-    handlePressStart(id, e) {
-    }
-    
-    handlePressEnd(id, e) {
-    }
-
     selectContainer(id) {
         if (this.isDragging) return;
         
@@ -403,7 +397,7 @@ class TodoApp {
             .slice(0, limit);
     }
 
-    setupDragHandle(element, containerId) {
+        setupDragHandle(element, containerId) {
         const dragHandle = element.querySelector('.drag-handle');
         if (!dragHandle) return;
         
@@ -440,6 +434,10 @@ class TodoApp {
                 document.removeEventListener('touchmove', moveDetect);
                 document.removeEventListener('mouseup', endDetect);
                 document.removeEventListener('touchend', endDetect);
+                
+                if (!isDragAction) {
+                    this.selectContainer(containerId);
+                }
             };
             
             document.addEventListener('mousemove', moveDetect);
@@ -816,524 +814,523 @@ class TodoApp {
         
         return `${day}.${month}.${year} ${timeStr}`;
     }
-            
-getCharCount(html) {
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    
-    const bullets = temp.querySelectorAll('.bullet-point');
-    bullets.forEach(bullet => bullet.remove());
-    const numbers = temp.querySelectorAll('.number-point');
-    numbers.forEach(number => number.remove());
-    
-    const checkboxes = temp.querySelectorAll('input[type="checkbox"]');
-    checkboxes.forEach(checkbox => checkbox.remove());
-    
-    return temp.textContent.trim().length;
-}
-updateMetadata(id) {
-    const container = this.containers.find(c => c.id === id);
-    if (!container || !container.expanded) return;
-    
-    const containerElement = document.querySelector(`[data-id="${id}"]`);
-    if (!containerElement) return;
-    
-    const metadataElement = containerElement.querySelector('.container-metadata');
-    if (metadataElement) {
-        const charCount = this.getCharCount(container.content);
-        metadataElement.textContent = `${this.formatDate(container.lastModified)} | ${charCount} characters`;
-    }
-}
-updateDeleteButton() {
-    const deleteBtn = document.getElementById('deleteButton');
-    deleteBtn.classList.toggle('active', this.selectedContainer !== null);
-}
-updateHideContentButton() {
-    const hideBtn = document.getElementById('hideContentButton');
-    const hideImg = document.getElementById('hideContentImage');
-    
-    if (this.selectedContainer) {
-        const container = this.containers.find(c => c.id === this.selectedContainer);
-        const isFolder = container && container.type === 'folder';
+    getCharCount(html) {
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
         
-        if (isFolder) {
-            const hasContent = this.containers.some(c => c.parentId === this.selectedContainer);
+        const bullets = temp.querySelectorAll('.bullet-point');
+        bullets.forEach(bullet => bullet.remove());
+        const numbers = temp.querySelectorAll('.number-point');
+        numbers.forEach(number => number.remove());
+        
+        const checkboxes = temp.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => checkbox.remove());
+        
+        return temp.textContent.trim().length;
+    }
+    updateMetadata(id) {
+        const container = this.containers.find(c => c.id === id);
+        if (!container || !container.expanded) return;
+        
+        const containerElement = document.querySelector(`[data-id="${id}"]`);
+        if (!containerElement) return;
+        
+        const metadataElement = containerElement.querySelector('.container-metadata');
+        if (metadataElement) {
+            const charCount = this.getCharCount(container.content);
+            metadataElement.textContent = `${this.formatDate(container.lastModified)} | ${charCount} characters`;
+        }
+    }
+    updateDeleteButton() {
+        const deleteBtn = document.getElementById('deleteButton');
+        deleteBtn.classList.toggle('active', this.selectedContainer !== null);
+    }
+    updateHideContentButton() {
+        const hideBtn = document.getElementById('hideContentButton');
+        const hideImg = document.getElementById('hideContentImage');
+        
+        if (this.selectedContainer) {
+            const container = this.containers.find(c => c.id === this.selectedContainer);
+            const isFolder = container && container.type === 'folder';
             
-            if (hasContent) {
+            if (isFolder) {
+                const hasContent = this.containers.some(c => c.parentId === this.selectedContainer);
+                
+                if (hasContent) {
+                    hideBtn.classList.add('active');
+                    const isHidden = this.hiddenContents.has(this.selectedContainer);
+                    hideImg.src = isHidden ? 'img/visible1.png' : 'img/visible.png';
+                } else {
+                    hideBtn.classList.remove('active');
+                }
+            } else {
                 hideBtn.classList.add('active');
                 const isHidden = this.hiddenContents.has(this.selectedContainer);
                 hideImg.src = isHidden ? 'img/visible1.png' : 'img/visible.png';
-            } else {
-                hideBtn.classList.remove('active');
             }
         } else {
-            hideBtn.classList.add('active');
-            const isHidden = this.hiddenContents.has(this.selectedContainer);
-            hideImg.src = isHidden ? 'img/visible1.png' : 'img/visible.png';
-        }
-    } else {
-        hideBtn.classList.remove('active');
-    }
-}
-toggleContentVisibility(id) {
-    if (this.hiddenContents.has(id)) {
-        this.hiddenContents.delete(id);
-    } else {
-        this.hiddenContents.add(id);
-    }
-    this.saveHiddenContents();
-    this.render();
-    this.updateHideContentButton();
-}
-updateToolbar() {
-    const toolbar = document.getElementById('toolbar');
-    
-    if (this.activeContainer !== null) {
-        toolbar.style.display = 'flex';
-        
-        setTimeout(() => {
-            toolbar.classList.add('show');
-        }, 700);
-    } else {
-        toolbar.classList.remove('show');
-        
-        setTimeout(() => {
-            if (!this.activeContainer) {
-                toolbar.style.display = 'none';
-            }
-        }, 500);
-    }
-}
-handleToolbarAction(action) {
-    if (!this.activeContainer) return;
-    
-    if (action === 'text') {
-        const textButtons = document.querySelectorAll('.toolbar-btn.text-formatting');
-        textButtons.forEach(btn => {
-            btn.classList.toggle('visible');
-        });
-        return;
-    }
-    const containerElement = document.querySelector(`[data-id="${this.activeContainer}"]`);
-    const contentElement = containerElement.querySelector('.container-content');
-    const selection = window.getSelection();
-    const selectedText = selection.toString();
-    
-    if (action === 'bold' && selectedText) {
-        document.execCommand('bold', false, null);
-        const container = this.containers.find(c => c.id === this.activeContainer);
-        if (container) {
-            container.content = contentElement.innerHTML;
-            container.lastModified = new Date().toISOString();
-            this.saveToStorage();
-            this.updateMetadata(this.activeContainer);
-        }
-    } else if (action === 'textcolor' && selectedText) {
-        const input = document.createElement('input');
-        input.type = 'color';
-        input.value = '#FF9800';
-        input.style.position = 'absolute';
-        input.style.opacity = '0';
-        input.style.pointerEvents = 'none';
-        
-        const btn = document.querySelector('[data-action="textcolor"]');
-        btn.appendChild(input);
-        
-        input.addEventListener('change', (e) => {
-            document.execCommand('foreColor', false, e.target.value);
-            const container = this.containers.find(c => c.id === this.activeContainer);
-            if (container) {
-                container.content = contentElement.innerHTML;
-                container.lastModified = new Date().toISOString();
-                this.saveToStorage();
-                this.updateMetadata(this.activeContainer);
-            }
-            input.remove();
-        });
-        
-        input.click();
-    } else if (action === 'italic' && selectedText) {
-        document.execCommand('italic', false, null);
-        const container = this.containers.find(c => c.id === this.activeContainer);
-        if (container) {
-            container.content = contentElement.innerHTML;
-            container.lastModified = new Date().toISOString();
-            this.saveToStorage();
-            this.updateMetadata(this.activeContainer);
-        }
-    } else if (action === 'underline' && selectedText) {
-        document.execCommand('underline', false, null);
-        const underlines = contentElement.querySelectorAll('u');
-        underlines.forEach(u => {
-            u.style.textDecorationColor = 'currentColor';
-        });
-        
-        const container = this.containers.find(c => c.id === this.activeContainer);
-        if (container) {
-            container.content = contentElement.innerHTML;
-            container.lastModified = new Date().toISOString();
-            this.saveToStorage();
-            this.updateMetadata(this.activeContainer);
-        }
-    } else if (action === 'strikethrough' && selectedText) {
-        document.execCommand('strikeThrough', false, null);
-        const strikes = contentElement.querySelectorAll('strike, s');
-        strikes.forEach(s => {
-            s.style.textDecorationColor = 'currentColor';
-        });
-    
-        const container = this.containers.find(c => c.id === this.activeContainer);
-        if (container) {
-            container.content = contentElement.innerHTML;
-            container.lastModified = new Date().toISOString();
-            this.saveToStorage();
-            this.updateMetadata(this.activeContainer);
-        }
-    } else if (action === 'colorpath' && selectedText) {
-        const input = document.createElement('input');
-        input.type = 'color';
-        input.value = '#FFEB3B';
-        input.style.position = 'absolute';
-        input.style.opacity = '0';
-        input.style.pointerEvents = 'none';
-        
-        const btn = document.querySelector('[data-action="colorpath"]');
-        btn.appendChild(input);
-        
-        input.addEventListener('change', (e) => {
-            document.execCommand('backColor', false, e.target.value);
-            const container = this.containers.find(c => c.id === this.activeContainer);
-            if (container) {
-                container.content = contentElement.innerHTML;
-                container.lastModified = new Date().toISOString();
-                this.saveToStorage();
-                this.updateMetadata(this.activeContainer);
-            }
-            input.remove();
-        });
-        
-        input.click();
-} else if (action === 'checkbox') {
-    const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-    if (range) {
-        const isInContent = contentElement.contains(range.commonAncestorContainer);
-        
-        if (!isInContent) {
-            return;
+            hideBtn.classList.remove('active');
         }
     }
-    
-    if (selectedText) {
-        let node = range.commonAncestorContainer;
-        let parentCheckbox = null;
-        
-        while (node && node !== contentElement) {
-            if (node.nodeType === 1 && node.classList && node.classList.contains('checkbox-item')) {
-                parentCheckbox = node;
-                break;
-            }
-            node = node.parentNode;
-        }
-        
-        if (parentCheckbox) {
-            this.removeCheckbox(parentCheckbox, contentElement);
+    toggleContentVisibility(id) {
+        if (this.hiddenContents.has(id)) {
+            this.hiddenContents.delete(id);
         } else {
-            this.addCheckboxToSelection(contentElement, selection);
+            this.hiddenContents.add(id);
         }
-    } else {
-        this.addCheckboxes(contentElement);
+        this.saveHiddenContents();
+        this.render();
+        this.updateHideContentButton();
     }
-    this.updateContainer(this.activeContainer, 'content', contentElement.innerHTML);
-} else if (action === 'dotlist') {
-    const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-    if (range) {
-        const isInContent = contentElement.contains(range.commonAncestorContainer);
+    updateToolbar() {
+        const toolbar = document.getElementById('toolbar');
         
-        if (!isInContent) {
-            return;
-        }
-    }
-    
-    if (selectedText) {
-        let node = range.commonAncestorContainer;
-        let parentBullet = null;
-        
-        while (node && node !== contentElement) {
-            if (node.nodeType === 1 && node.classList && node.classList.contains('bullet-item')) {
-                parentBullet = node;
-                break;
-            }
-            node = node.parentNode;
-        }
-        
-        if (parentBullet) {
-            this.removeBullet(parentBullet, contentElement);
+        if (this.activeContainer !== null) {
+            toolbar.style.display = 'flex';
+            
+            setTimeout(() => {
+                toolbar.classList.add('show');
+            }, 700);
         } else {
-            this.addBulletToSelection(contentElement, selection);
-        }
-    } else {
-        this.addBullets(contentElement);
-    }
-    this.updateContainer(this.activeContainer, 'content', contentElement.innerHTML);
-} else if (action === 'numberlist') {
-    const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-    if (range) {
-        const isInContent = contentElement.contains(range.commonAncestorContainer);
-        
-        if (!isInContent) {
-            return;
+            toolbar.classList.remove('show');
+            
+            setTimeout(() => {
+                if (!this.activeContainer) {
+                    toolbar.style.display = 'none';
+                }
+            }, 500);
         }
     }
-    
-    if (selectedText) {
-        let node = range.commonAncestorContainer;
-        let parentNumber = null;
+    handleToolbarAction(action) {
+        if (!this.activeContainer) return;
         
-        while (node && node !== contentElement) {
-            if (node.nodeType === 1 && node.classList && node.classList.contains('number-item')) {
-                parentNumber = node;
-                break;
-            }
-            node = node.parentNode;
-        }
-        
-        if (parentNumber) {
-            this.removeNumber(parentNumber, contentElement);
-        } else {
-            this.addNumberToSelection(contentElement, selection);
-        }
-    } else {
-        this.addNumbers(contentElement);
-    }
-    this.updateContainer(this.activeContainer, 'content', contentElement.innerHTML);
-}
-}
-removeCheckbox(checkboxItem, contentElement) {
-     const span = checkboxItem.querySelector('span');
-     if (!span) return;
-     
-     const textContent = span.textContent || span.innerText;
-     const textNode = document.createTextNode(textContent);
-     
-     const br = document.createElement('br');
-     
-     const parent = checkboxItem.parentNode;
-     parent.insertBefore(textNode, checkboxItem);
-     parent.insertBefore(br, checkboxItem);
-     
-     checkboxItem.remove();
- }
- 
- removeBullet(bulletItem, contentElement) {
-     const span = bulletItem.querySelector('span:last-child');
-     if (!span) return;
-     
-     const textContent = span.textContent || span.innerText;
-     const textNode = document.createTextNode(textContent);
-     
-     const br = document.createElement('br');
-     
-     const parent = bulletItem.parentNode;
-     parent.insertBefore(textNode, bulletItem);
-     parent.insertBefore(br, bulletItem);
-     
-     bulletItem.remove();
- }
- preventBulletFormatting(element) {
-     element.addEventListener('input', (e) => {
-         const bullets = element.querySelectorAll('.bullet-point');
-         bullets.forEach(bullet => {
-             bullet.style.fontWeight = 'normal';
-             bullet.style.textDecoration = 'none';
-             bullet.style.fontStyle = 'normal';
-             bullet.style.backgroundColor = 'transparent';
-             
-             if (bullet.parentElement) {
-                 const computedColor = window.getComputedStyle(bullet.parentElement.querySelector('span:last-child')).color;
-                 bullet.style.color = computedColor;
-             }
-         });
-     });
- }
- 
- addBulletToSelection(element, selection) {
-    const range = selection.getRangeAt(0);
-    let selectedText = selection.toString().trim();
-    
-    if (!selectedText) return;
-    
-    const startContainer = range.startContainer;
-    const endContainer = range.endContainer;
-    
-    let startNode = startContainer.nodeType === 3 ? startContainer.parentNode : startContainer;
-    if (startNode.classList && (startNode.classList.contains('bullet-point') || startNode.classList.contains('number-point'))) {
-        return;
-    }
-    
-    let endNode = endContainer.nodeType === 3 ? endContainer.parentNode : endContainer;
-    if (endNode.classList && (endNode.classList.contains('bullet-point') || endNode.classList.contains('number-point'))) {
-        return;
-    }
-    
-    const itemsToRemove = [];
-    const allItems = element.querySelectorAll('.checkbox-item, .bullet-item, .number-item');
-    
-allItems.forEach(item => {
-    const label = item.querySelector('span:last-child');
-    if (label) {
-        const labelText = label.textContent || label.innerText || '';
-        const labelStart = selectedText.indexOf(labelText.trim());
-        
-        if (labelStart !== -1) {
-            itemsToRemove.push(item);
-        }
-    }
-});
-    
-    if (itemsToRemove.length > 0) {
-        const allAreBullets = itemsToRemove.every(item => item.classList.contains('bullet-item'));
-        
-        if (allAreBullets) {
-            itemsToRemove.forEach(item => {
-                this.removeBullet(item, element);
+        if (action === 'text') {
+            const textButtons = document.querySelectorAll('.toolbar-btn.text-formatting');
+            textButtons.forEach(btn => {
+                btn.classList.toggle('visible');
             });
             return;
         }
-        const wasNumberList = itemsToRemove.some(item => item.classList.contains('number-item'));
+        const containerElement = document.querySelector(`[data-id="${this.activeContainer}"]`);
+        const contentElement = containerElement.querySelector('.container-content');
+        const selection = window.getSelection();
+        const selectedText = selection.toString();
         
-        itemsToRemove.forEach((item) => {
-            const parent = item.parentNode;
-            const labelSpan = item.querySelector('span:last-child');
-            const lineText = labelSpan ? (labelSpan.innerHTML || '').trim() : '';
+        if (action === 'bold' && selectedText) {
+            document.execCommand('bold', false, null);
+            const container = this.containers.find(c => c.id === this.activeContainer);
+            if (container) {
+                container.content = contentElement.innerHTML;
+                container.lastModified = new Date().toISOString();
+                this.saveToStorage();
+                this.updateMetadata(this.activeContainer);
+            }
+        } else if (action === 'textcolor' && selectedText) {
+            const input = document.createElement('input');
+            input.type = 'color';
+            input.value = '#FF9800';
+            input.style.position = 'absolute';
+            input.style.opacity = '0';
+            input.style.pointerEvents = 'none';
             
-            const div = document.createElement('div');
-            div.className = 'bullet-item';
+            const btn = document.querySelector('[data-action="textcolor"]');
+            btn.appendChild(input);
             
-            const bullet = document.createElement('span');
-            bullet.className = 'bullet-point';
-            bullet.textContent = '•';
-            bullet.setAttribute('contenteditable', 'false');
+            input.addEventListener('change', (e) => {
+                document.execCommand('foreColor', false, e.target.value);
+                const container = this.containers.find(c => c.id === this.activeContainer);
+                if (container) {
+                    container.content = contentElement.innerHTML;
+                    container.lastModified = new Date().toISOString();
+                    this.saveToStorage();
+                    this.updateMetadata(this.activeContainer);
+                }
+                input.remove();
+            });
             
-            const label = document.createElement('span');
-            label.innerHTML = lineText;
+            input.click();
+        } else if (action === 'italic' && selectedText) {
+            document.execCommand('italic', false, null);
+            const container = this.containers.find(c => c.id === this.activeContainer);
+            if (container) {
+                container.content = contentElement.innerHTML;
+                container.lastModified = new Date().toISOString();
+                this.saveToStorage();
+                this.updateMetadata(this.activeContainer);
+            }
+        } else if (action === 'underline' && selectedText) {
+            document.execCommand('underline', false, null);
+            const underlines = contentElement.querySelectorAll('u');
+            underlines.forEach(u => {
+                u.style.textDecorationColor = 'currentColor';
+            });
             
-            div.appendChild(bullet);
-            div.appendChild(label);
-            
-            parent.replaceChild(div, item);
-        });
+            const container = this.containers.find(c => c.id === this.activeContainer);
+            if (container) {
+                container.content = contentElement.innerHTML;
+                container.lastModified = new Date().toISOString();
+                this.saveToStorage();
+                this.updateMetadata(this.activeContainer);
+            }
+        } else if (action === 'strikethrough' && selectedText) {
+            document.execCommand('strikeThrough', false, null);
+            const strikes = contentElement.querySelectorAll('strike, s');
+            strikes.forEach(s => {
+                s.style.textDecorationColor = 'currentColor';
+            });
         
-        if (wasNumberList) {
-            this.renumberList(element);
+            const container = this.containers.find(c => c.id === this.activeContainer);
+            if (container) {
+                container.content = contentElement.innerHTML;
+                container.lastModified = new Date().toISOString();
+                this.saveToStorage();
+                this.updateMetadata(this.activeContainer);
+            }
+        } else if (action === 'colorpath' && selectedText) {
+            const input = document.createElement('input');
+            input.type = 'color';
+            input.value = '#FFEB3B';
+            input.style.position = 'absolute';
+            input.style.opacity = '0';
+            input.style.pointerEvents = 'none';
+            
+            const btn = document.querySelector('[data-action="colorpath"]');
+            btn.appendChild(input);
+            
+            input.addEventListener('change', (e) => {
+                document.execCommand('backColor', false, e.target.value);
+                const container = this.containers.find(c => c.id === this.activeContainer);
+                if (container) {
+                    container.content = contentElement.innerHTML;
+                    container.lastModified = new Date().toISOString();
+                    this.saveToStorage();
+                    this.updateMetadata(this.activeContainer);
+                }
+                input.remove();
+            });
+            
+            input.click();
+    } else if (action === 'checkbox') {
+        const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+        if (range) {
+            const isInContent = contentElement.contains(range.commonAncestorContainer);
+            
+            if (!isInContent) {
+                return;
+            }
         }
-    } else {
-        selectedText = selectedText.replace(/^•\s*/gm, '').replace(/^\d+\.\s*/gm, '').trim();
-        range.deleteContents();
         
-        const lines = selectedText.split('\n').filter(line => line.trim());
-        const fragment = document.createDocumentFragment();
+        if (selectedText) {
+            let node = range.commonAncestorContainer;
+            let parentCheckbox = null;
+            
+            while (node && node !== contentElement) {
+                if (node.nodeType === 1 && node.classList && node.classList.contains('checkbox-item')) {
+                    parentCheckbox = node;
+                    break;
+                }
+                node = node.parentNode;
+            }
+            
+            if (parentCheckbox) {
+                this.removeCheckbox(parentCheckbox, contentElement);
+            } else {
+                this.addCheckboxToSelection(contentElement, selection);
+            }
+        } else {
+            this.addCheckboxes(contentElement);
+        }
+        this.updateContainer(this.activeContainer, 'content', contentElement.innerHTML);
+    } else if (action === 'dotlist') {
+        const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+        if (range) {
+            const isInContent = contentElement.contains(range.commonAncestorContainer);
+            
+            if (!isInContent) {
+                return;
+            }
+        }
         
-        lines.forEach((line) => {
-            const div = document.createElement('div');
-            div.className = 'bullet-item';
+        if (selectedText) {
+            let node = range.commonAncestorContainer;
+            let parentBullet = null;
             
-            const bullet = document.createElement('span');
-            bullet.className = 'bullet-point';
-            bullet.textContent = '•';
-            bullet.setAttribute('contenteditable', 'false');
+            while (node && node !== contentElement) {
+                if (node.nodeType === 1 && node.classList && node.classList.contains('bullet-item')) {
+                    parentBullet = node;
+                    break;
+                }
+                node = node.parentNode;
+            }
             
-            const label = document.createElement('span');
-            label.textContent = line.trim();
+            if (parentBullet) {
+                this.removeBullet(parentBullet, contentElement);
+            } else {
+                this.addBulletToSelection(contentElement, selection);
+            }
+        } else {
+            this.addBullets(contentElement);
+        }
+        this.updateContainer(this.activeContainer, 'content', contentElement.innerHTML);
+    } else if (action === 'numberlist') {
+        const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+        if (range) {
+            const isInContent = contentElement.contains(range.commonAncestorContainer);
             
-            div.appendChild(bullet);
-            div.appendChild(label);
-            fragment.appendChild(div);
-        });
+            if (!isInContent) {
+                return;
+            }
+        }
         
-        range.insertNode(fragment);
+        if (selectedText) {
+            let node = range.commonAncestorContainer;
+            let parentNumber = null;
+            
+            while (node && node !== contentElement) {
+                if (node.nodeType === 1 && node.classList && node.classList.contains('number-item')) {
+                    parentNumber = node;
+                    break;
+                }
+                node = node.parentNode;
+            }
+            
+            if (parentNumber) {
+                this.removeNumber(parentNumber, contentElement);
+            } else {
+                this.addNumberToSelection(contentElement, selection);
+            }
+        } else {
+            this.addNumbers(contentElement);
+        }
+        this.updateContainer(this.activeContainer, 'content', contentElement.innerHTML);
     }
-    
-    selection.removeAllRanges();
+    }
+    removeCheckbox(checkboxItem, contentElement) {
+        const span = checkboxItem.querySelector('span');
+        if (!span) return;
+        
+        const textContent = span.textContent || span.innerText;
+        const textNode = document.createTextNode(textContent);
+        
+        const br = document.createElement('br');
+        
+        const parent = checkboxItem.parentNode;
+        parent.insertBefore(textNode, checkboxItem);
+        parent.insertBefore(br, checkboxItem);
+        
+        checkboxItem.remove();
+    }
+     
+    removeBullet(bulletItem, contentElement) {
+        const span = bulletItem.querySelector('span:last-child');
+        if (!span) return;
+        
+        const textContent = span.textContent || span.innerText;
+        const textNode = document.createTextNode(textContent);
+        
+        const br = document.createElement('br');
+        
+        const parent = bulletItem.parentNode;
+        parent.insertBefore(textNode, bulletItem);
+        parent.insertBefore(br, bulletItem);
+        
+        bulletItem.remove();
+    }
+    preventBulletFormatting(element) {
+        element.addEventListener('input', (e) => {
+            const bullets = element.querySelectorAll('.bullet-point');
+            bullets.forEach(bullet => {
+            bullet.style.fontWeight = 'normal';
+            bullet.style.textDecoration = 'none';
+            bullet.style.fontStyle = 'normal';
+            bullet.style.backgroundColor = 'transparent';
+             
+            if (bullet.parentElement) {
+                const computedColor = window.getComputedStyle(bullet.parentElement.querySelector('span:last-child')).color;
+                bullet.style.color = computedColor;
+            }
+        });
+   });
 }
  
- addBullets(element) {
-     const originalHTML = element.innerHTML.trim();
-     if (!originalHTML) return;
-     
-     const lines = originalHTML.split('<br>').filter(line => line.trim());
-     
-     if (lines.length === 0) {
-         lines.push(originalHTML);
-     }
-     
-     element.innerHTML = '';
-     
-     lines.forEach(lineHTML => {
-         const div = document.createElement('div');
-         div.className = 'bullet-item';
-         
-         const bullet = document.createElement('span');
-         bullet.className = 'bullet-point';
-         bullet.textContent = '•';
-         bullet.setAttribute('contenteditable', 'false');
-         
-         const label = document.createElement('span');
-         label.innerHTML = lineHTML.trim();
-         
-         div.appendChild(bullet);
-         div.appendChild(label);
-         element.appendChild(div);
-     });
- }
+    addBulletToSelection(element, selection) {
+        const range = selection.getRangeAt(0);
+        let selectedText = selection.toString().trim();
+        
+        if (!selectedText) return;
+        
+        const startContainer = range.startContainer;
+        const endContainer = range.endContainer;
+        
+        let startNode = startContainer.nodeType === 3 ? startContainer.parentNode : startContainer;
+        if (startNode.classList && (startNode.classList.contains('bullet-point') || startNode.classList.contains('number-point'))) {
+            return;
+        }
+        
+        let endNode = endContainer.nodeType === 3 ? endContainer.parentNode : endContainer;
+        if (endNode.classList && (endNode.classList.contains('bullet-point') || endNode.classList.contains('number-point'))) {
+            return;
+        }
+        
+        const itemsToRemove = [];
+        const allItems = element.querySelectorAll('.checkbox-item, .bullet-item, .number-item');
+        
+        allItems.forEach(item => {
+            const label = item.querySelector('span:last-child');
+            if (label) {
+                const labelText = label.textContent || label.innerText || '';
+                const labelStart = selectedText.indexOf(labelText.trim());
+                
+                if (labelStart !== -1) {
+                    itemsToRemove.push(item);
+                }
+            }
+        });
+        
+        if (itemsToRemove.length > 0) {
+            const allAreBullets = itemsToRemove.every(item => item.classList.contains('bullet-item'));
+            
+            if (allAreBullets) {
+                itemsToRemove.forEach(item => {
+                    this.removeBullet(item, element);
+                });
+                return;
+            }
+            const wasNumberList = itemsToRemove.some(item => item.classList.contains('number-item'));
+            
+            itemsToRemove.forEach((item) => {
+                const parent = item.parentNode;
+                const labelSpan = item.querySelector('span:last-child');
+                const lineText = labelSpan ? (labelSpan.innerHTML || '').trim() : '';
+                
+                const div = document.createElement('div');
+                div.className = 'bullet-item';
+                
+                const bullet = document.createElement('span');
+                bullet.className = 'bullet-point';
+                bullet.textContent = '•';
+                bullet.setAttribute('contenteditable', 'false');
+                
+                const label = document.createElement('span');
+                label.innerHTML = lineText;
+                
+                div.appendChild(bullet);
+                div.appendChild(label);
+                
+                parent.replaceChild(div, item);
+            });
+            
+            if (wasNumberList) {
+                this.renumberList(element);
+            }
+        } else {
+            selectedText = selectedText.replace(/^•\s*/gm, '').replace(/^\d+\.\s*/gm, '').trim();
+            range.deleteContents();
+            
+            const lines = selectedText.split('\n').filter(line => line.trim());
+            const fragment = document.createDocumentFragment();
+            
+            lines.forEach((line) => {
+                const div = document.createElement('div');
+                div.className = 'bullet-item';
+                
+                const bullet = document.createElement('span');
+                bullet.className = 'bullet-point';
+                bullet.textContent = '•';
+                bullet.setAttribute('contenteditable', 'false');
+                
+                const label = document.createElement('span');
+                label.textContent = line.trim();
+                
+                div.appendChild(bullet);
+                div.appendChild(label);
+                fragment.appendChild(div);
+            });
+            
+            range.insertNode(fragment);
+        }
+        
+        selection.removeAllRanges();
+    }     
  
- setupBulletEnterKey(element, containerId) {
-     element.addEventListener('keydown', (e) => {
-         if (e.key === 'Enter') {
-             const selection = window.getSelection();
-             const range = selection.getRangeAt(0);
-             const container = range.commonAncestorContainer;
-             
-             let bulletItem = container.nodeType === 3 ? container.parentNode : container;
-             while (bulletItem && !bulletItem.classList.contains('bullet-item')) {
-                 bulletItem = bulletItem.parentNode;
-             }
-             
-             if (bulletItem && bulletItem.classList.contains('bullet-item')) {
-                 e.preventDefault();
-                 
-                 if (e.shiftKey) {
-                     document.execCommand('insertHTML', false, '<br>');
-                 } else {
-                     const label = bulletItem.querySelector('span:last-child');
-                     const textAfterCursor = this.getTextAfterCursor(range, label);
-                     
-                     if (textAfterCursor) {
-                         this.removeTextAfterCursor(range, label);
-                     }
-                     
-                     const newDiv = document.createElement('div');
-                     newDiv.className = 'bullet-item';
-                     
-                     const bullet = document.createElement('span');
-                     bullet.className = 'bullet-point';
-                     bullet.textContent = '•';
-                     bullet.setAttribute('contenteditable', 'false');
-                     
-                     const newLabel = document.createElement('span');
-                     newLabel.innerHTML = textAfterCursor || '<br>';
-                     
-                     newDiv.appendChild(bullet);
-                     newDiv.appendChild(newLabel);
-                     
-                     bulletItem.parentNode.insertBefore(newDiv, bulletItem.nextSibling);
-                     
-                     const newRange = document.createRange();
-                     newRange.setStart(newLabel, 0);
-                     newRange.collapse(true);
-                     selection.removeAllRanges();
-                     selection.addRange(newRange);
-                 }
-             }
+    addBullets(element) {
+        const originalHTML = element.innerHTML.trim();
+        if (!originalHTML) return;
+        
+        const lines = originalHTML.split('<br>').filter(line => line.trim());
+        
+        if (lines.length === 0) {
+            lines.push(originalHTML);
+        }
+        
+        element.innerHTML = '';
+        
+        lines.forEach(lineHTML => {
+            const div = document.createElement('div');
+            div.className = 'bullet-item';
+            
+            const bullet = document.createElement('span');
+            bullet.className = 'bullet-point';
+            bullet.textContent = '•';
+            bullet.setAttribute('contenteditable', 'false');
+            
+            const label = document.createElement('span');
+            label.innerHTML = lineHTML.trim();
+            
+            div.appendChild(bullet);
+            div.appendChild(label);
+            element.appendChild(div);
+        });
+    }
+    
+    setupBulletEnterKey(element, containerId) {
+        element.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const selection = window.getSelection();
+                const range = selection.getRangeAt(0);
+                const container = range.commonAncestorContainer;
+                
+                let bulletItem = container.nodeType === 3 ? container.parentNode : container;
+                while (bulletItem && !bulletItem.classList.contains('bullet-item')) {
+                    bulletItem = bulletItem.parentNode;
+                }
+                
+                if (bulletItem && bulletItem.classList.contains('bullet-item')) {
+                    e.preventDefault();
+                    
+                    if (e.shiftKey) {
+                        document.execCommand('insertHTML', false, '<br>');
+                    } else {
+                        const label = bulletItem.querySelector('span:last-child');
+                        const textAfterCursor = this.getTextAfterCursor(range, label);
+                        
+                        if (textAfterCursor) {
+                            this.removeTextAfterCursor(range, label);
+                        }
+                        
+                        const newDiv = document.createElement('div');
+                        newDiv.className = 'bullet-item';
+                        
+                        const bullet = document.createElement('span');
+                        bullet.className = 'bullet-point';
+                        bullet.textContent = '•';
+                        bullet.setAttribute('contenteditable', 'false');
+                        
+                        const newLabel = document.createElement('span');
+                        newLabel.innerHTML = textAfterCursor || '<br>';
+                        
+                        newDiv.appendChild(bullet);
+                        newDiv.appendChild(newLabel);
+                        
+                        bulletItem.parentNode.insertBefore(newDiv, bulletItem.nextSibling);
+                        
+                        const newRange = document.createRange();
+                        newRange.setStart(newLabel, 0);
+                        newRange.collapse(true);
+                        selection.removeAllRanges();
+                        selection.addRange(newRange);
+                    }
+                }
             }
         });
     }
@@ -1673,468 +1670,435 @@ allItems.forEach(item => {
             });
         });
     }
-addCheckboxToSelection(element, selection) {
-    const range = selection.getRangeAt(0);
-    let selectedText = selection.toString().trim();
-    
-    if (!selectedText) return;
-    
-    const startContainer = range.startContainer;
-    const endContainer = range.endContainer;
-    
-    let startNode = startContainer.nodeType === 3 ? startContainer.parentNode : startContainer;
-    if (startNode.classList && (startNode.classList.contains('bullet-point') || startNode.classList.contains('number-point'))) {
-        return;
-    }
-    
-    let endNode = endContainer.nodeType === 3 ? endContainer.parentNode : endContainer;
-    if (endNode.classList && (endNode.classList.contains('bullet-point') || endNode.classList.contains('number-point'))) {
-        return;
-    }
-    
-    const itemsToRemove = [];
-    const allItems = element.querySelectorAll('.checkbox-item, .bullet-item, .number-item');
-    
-allItems.forEach(item => {
-    const label = item.querySelector('span:last-child');
-    if (label) {
-        const labelText = label.textContent || label.innerText || '';
-        const labelStart = selectedText.indexOf(labelText.trim());
+    addCheckboxToSelection(element, selection) {
+        const range = selection.getRangeAt(0);
+        let selectedText = selection.toString().trim();
         
-        if (labelStart !== -1) {
-            itemsToRemove.push(item);
-        }
-    }
-});
-    
-    if (itemsToRemove.length > 0) {
-        const allAreCheckboxes = itemsToRemove.every(item => item.classList.contains('checkbox-item'));
+        if (!selectedText) return;
         
-        if (allAreCheckboxes) {
-            itemsToRemove.forEach(item => {
-                this.removeCheckbox(item, element);
-            });
+        const startContainer = range.startContainer;
+        const endContainer = range.endContainer;
+        
+        let startNode = startContainer.nodeType === 3 ? startContainer.parentNode : startContainer;
+        if (startNode.classList && (startNode.classList.contains('bullet-point') || startNode.classList.contains('number-point'))) {
             return;
         }
         
-        const wasNumberList = itemsToRemove.some(item => item.classList.contains('number-item'));
-        
-        itemsToRemove.forEach((item) => {
-            const parent = item.parentNode;
-            const labelSpan = item.querySelector('span:last-child');
-            const lineText = labelSpan ? (labelSpan.innerHTML || '').trim() : '';
-            
-            const div = document.createElement('div');
-            div.className = 'checkbox-item';
-            
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.setAttribute('contenteditable', 'false');
-            checkbox.addEventListener('change', (e) => {
-                e.stopPropagation();
-                div.classList.toggle('checked', e.target.checked);
-                this.updateContainer(this.activeContainer, 'content', element.innerHTML);
-            });
-            
-            const label = document.createElement('span');
-            label.innerHTML = lineText;
-            
-            div.appendChild(checkbox);
-            div.appendChild(label);
-            
-            parent.replaceChild(div, item);
-        });
-        
-        if (wasNumberList) {
-            this.renumberList(element);
+        let endNode = endContainer.nodeType === 3 ? endContainer.parentNode : endContainer;
+        if (endNode.classList && (endNode.classList.contains('bullet-point') || endNode.classList.contains('number-point'))) {
+            return;
         }
-    } else {
-        selectedText = selectedText.replace(/^•\s*/gm, '').replace(/^\d+\.\s*/gm, '').trim();
-        range.deleteContents();
         
-        const lines = selectedText.split('\n').filter(line => line.trim());
-        const fragment = document.createDocumentFragment();
+        const itemsToRemove = [];
+        const allItems = element.querySelectorAll('.checkbox-item, .bullet-item, .number-item');
         
-        lines.forEach((line) => {
-            const div = document.createElement('div');
-            div.className = 'checkbox-item';
+    allItems.forEach(item => {
+        const label = item.querySelector('span:last-child');
+        if (label) {
+            const labelText = label.textContent || label.innerText || '';
+            const labelStart = selectedText.indexOf(labelText.trim());
             
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.setAttribute('contenteditable', 'false');
-            checkbox.addEventListener('change', (e) => {
-                e.stopPropagation();
-                div.classList.toggle('checked', e.target.checked);
-                this.updateContainer(this.activeContainer, 'content', element.innerHTML);
-            });
-            
-            const label = document.createElement('span');
-            label.textContent = line.trim();
-            
-            div.appendChild(checkbox);
-            div.appendChild(label);
-            fragment.appendChild(div);
-        });
-        
-        range.insertNode(fragment);
-    }
-    
-    selection.removeAllRanges();
-}
-
-addCheckboxes(element) {
-    const originalHTML = element.innerHTML.trim();
-    if (!originalHTML) return;
-    
-    const lines = originalHTML.split('<br>').filter(line => line.trim());
-    
-    if (lines.length === 0) {
-        lines.push(originalHTML);
-    }
-    
-    element.innerHTML = '';
-    
-    lines.forEach(lineHTML => {
-        const div = document.createElement('div');
-        div.className = 'checkbox-item';
-        
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.setAttribute('contenteditable', 'false');
-        checkbox.addEventListener('change', (e) => {
-            e.stopPropagation();
-            div.classList.toggle('checked', e.target.checked);
-            this.updateContainer(this.activeContainer, 'content', element.innerHTML);
-        });
-        
-        const label = document.createElement('span');
-        label.innerHTML = lineHTML.trim();
-        
-        div.appendChild(checkbox);
-        div.appendChild(label);
-        element.appendChild(div);
+            if (labelStart !== -1) {
+                itemsToRemove.push(item);
+            }
+        }
     });
-}
-setupCheckboxEnterKey(element, containerId) {
-element.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        const selection = window.getSelection();
-        const range = selection.getRangeAt(0);
-        const container = range.commonAncestorContainer;
         
-        let checkboxItem = container.nodeType === 3 ? container.parentNode : container;
-        while (checkboxItem && !checkboxItem.classList.contains('checkbox-item')) {
-            checkboxItem = checkboxItem.parentNode;
-        }
-        
-        if (checkboxItem && checkboxItem.classList.contains('checkbox-item')) {
-            e.preventDefault();
+        if (itemsToRemove.length > 0) {
+            const allAreCheckboxes = itemsToRemove.every(item => item.classList.contains('checkbox-item'));
             
-            if (e.shiftKey) {
-                document.execCommand('insertHTML', false, '<br>');
-            } else {
-                const label = checkboxItem.querySelector('span');
-                const textAfterCursor = this.getTextAfterCursor(range, label);
+            if (allAreCheckboxes) {
+                itemsToRemove.forEach(item => {
+                    this.removeCheckbox(item, element);
+                });
+                return;
+            }
+            
+            const wasNumberList = itemsToRemove.some(item => item.classList.contains('number-item'));
+            
+            itemsToRemove.forEach((item) => {
+                const parent = item.parentNode;
+                const labelSpan = item.querySelector('span:last-child');
+                const lineText = labelSpan ? (labelSpan.innerHTML || '').trim() : '';
                 
-                if (textAfterCursor) {
-                    this.removeTextAfterCursor(range, label);
-                }
-                
-                const newDiv = document.createElement('div');
-                newDiv.className = 'checkbox-item';
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
                 
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.setAttribute('contenteditable', 'false');
-                checkbox.addEventListener('change', (ev) => {
-                    ev.stopPropagation();
-                    newDiv.classList.toggle('checked', ev.target.checked);
-                    this.updateContainer(containerId, 'content', element.innerHTML);
+                checkbox.addEventListener('change', (e) => {
+                    e.stopPropagation();
+                    div.classList.toggle('checked', e.target.checked);
+                    this.updateContainer(this.activeContainer, 'content', element.innerHTML);
                 });
                 
-                const newLabel = document.createElement('span');
-                newLabel.innerHTML = textAfterCursor || '<br>';
+                const label = document.createElement('span');
+                label.innerHTML = lineText;
                 
-                newDiv.appendChild(checkbox);
-                newDiv.appendChild(newLabel);
+                div.appendChild(checkbox);
+                div.appendChild(label);
                 
-                checkboxItem.parentNode.insertBefore(newDiv, checkboxItem.nextSibling);
+                parent.replaceChild(div, item);
+            });
+            
+            if (wasNumberList) {
+                this.renumberList(element);
+            }
+        } else {
+            selectedText = selectedText.replace(/^•\s*/gm, '').replace(/^\d+\.\s*/gm, '').trim();
+            range.deleteContents();
+            
+            const lines = selectedText.split('\n').filter(line => line.trim());
+            const fragment = document.createDocumentFragment();
+            
+            lines.forEach((line) => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
                 
-                const newRange = document.createRange();
-                newRange.setStart(newLabel, 0);
-                newRange.collapse(true);
-                selection.removeAllRanges();
-                selection.addRange(newRange);
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.setAttribute('contenteditable', 'false');
+                checkbox.addEventListener('change', (e) => {
+                    e.stopPropagation();
+                    div.classList.toggle('checked', e.target.checked);
+                    this.updateContainer(this.activeContainer, 'content', element.innerHTML);
+                });
+                
+                const label = document.createElement('span');
+                label.textContent = line.trim();
+                
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                fragment.appendChild(div);
+            });
+            
+            range.insertNode(fragment);
+        }
+        
+        selection.removeAllRanges();
+    }
+    
+    addCheckboxes(element) {
+        const originalHTML = element.innerHTML.trim();
+        if (!originalHTML) return;
+        
+        const lines = originalHTML.split('<br>').filter(line => line.trim());
+        
+        if (lines.length === 0) {
+            lines.push(originalHTML);
+        }
+        
+        element.innerHTML = '';
+        
+        lines.forEach(lineHTML => {
+            const div = document.createElement('div');
+            div.className = 'checkbox-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.setAttribute('contenteditable', 'false');
+            checkbox.addEventListener('change', (e) => {
+                e.stopPropagation();
+                div.classList.toggle('checked', e.target.checked);
+                this.updateContainer(this.activeContainer, 'content', element.innerHTML);
+            });
+            
+            const label = document.createElement('span');
+            label.innerHTML = lineHTML.trim();
+            
+            div.appendChild(checkbox);
+            div.appendChild(label);
+            element.appendChild(div);
+        });
+    }
+    setupCheckboxEnterKey(element, containerId) {
+    element.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const selection = window.getSelection();
+            const range = selection.getRangeAt(0);
+            const container = range.commonAncestorContainer;
+            
+            let checkboxItem = container.nodeType === 3 ? container.parentNode : container;
+            while (checkboxItem && !checkboxItem.classList.contains('checkbox-item')) {
+                checkboxItem = checkboxItem.parentNode;
+            }
+            
+            if (checkboxItem && checkboxItem.classList.contains('checkbox-item')) {
+                e.preventDefault();
+                
+                if (e.shiftKey) {
+                    document.execCommand('insertHTML', false, '<br>');
+                } else {
+                    const label = checkboxItem.querySelector('span');
+                    const textAfterCursor = this.getTextAfterCursor(range, label);
+                    
+                    if (textAfterCursor) {
+                        this.removeTextAfterCursor(range, label);
+                    }
+                    
+                    const newDiv = document.createElement('div');
+                    newDiv.className = 'checkbox-item';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.setAttribute('contenteditable', 'false');
+                    checkbox.addEventListener('change', (ev) => {
+                        ev.stopPropagation();
+                        newDiv.classList.toggle('checked', ev.target.checked);
+                        this.updateContainer(containerId, 'content', element.innerHTML);
+                    });
+                    
+                    const newLabel = document.createElement('span');
+                    newLabel.innerHTML = textAfterCursor || '<br>';
+                    
+                    newDiv.appendChild(checkbox);
+                    newDiv.appendChild(newLabel);
+                    
+                    checkboxItem.parentNode.insertBefore(newDiv, checkboxItem.nextSibling);
+                    
+                    const newRange = document.createRange();
+                    newRange.setStart(newLabel, 0);
+                    newRange.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+                }
             }
         }
+    });
     }
-});
-}
-
-getTextAfterCursor(range, label) {
-    const clonedRange = range.cloneRange();
-    clonedRange.selectNodeContents(label);
-    clonedRange.setStart(range.endContainer, range.endOffset);
     
-    const fragment = clonedRange.cloneContents();
-    const div = document.createElement('div');
-    div.appendChild(fragment);
-    return div.innerHTML;
-}
-
-removeTextAfterCursor(range, label) {
-    const clonedRange = range.cloneRange();
-    clonedRange.selectNodeContents(label);
-    clonedRange.setStart(range.endContainer, range.endOffset);
-    clonedRange.deleteContents();
-}
-    render() {
-        const wrapper = document.getElementById('containersWrapper');
-        const overlay = document.getElementById('overlay');
-        wrapper.innerHTML = '';
+    getTextAfterCursor(range, label) {
+        const clonedRange = range.cloneRange();
+        clonedRange.selectNodeContents(label);
+        clonedRange.setStart(range.endContainer, range.endOffset);
         
-        const hasExpanded = this.containers.some(c => c.expanded);
-        overlay.classList.toggle('show', hasExpanded);
-        
-        const visibleContainers = this.containers.filter(c => 
-            (c.parentId || null) === this.currentFolderId
-        );
-        
-        visibleContainers.forEach((container, index) => {
-            const div = document.createElement('div');
-            const isSelected = this.selectedContainer === container.id;
-            const isFolder = container.type === 'folder';
+        const fragment = clonedRange.cloneContents();
+        const div = document.createElement('div');
+        div.appendChild(fragment);
+        return div.innerHTML;
+    }
+    
+    removeTextAfterCursor(range, label) {
+        const clonedRange = range.cloneRange();
+        clonedRange.selectNodeContents(label);
+        clonedRange.setStart(range.endContainer, range.endOffset);
+        clonedRange.deleteContents();
+    }
+        render() {
+            const wrapper = document.getElementById('containersWrapper');
+            const overlay = document.getElementById('overlay');
+            wrapper.innerHTML = '';
             
-            const isHidden = this.hiddenContents.has(container.id);
-            div.className = `container ${isFolder ? 'folder' : ''} ${container.expanded ? 'expanded' : ''} ${isSelected ? 'selected' : ''} ${isHidden ? 'content-hidden' : ''}`;
-            div.dataset.id = container.id;
+            const hasExpanded = this.containers.some(c => c.expanded);
+            overlay.classList.toggle('show', hasExpanded);
             
-            const closeBtn = document.createElement('button');
-            closeBtn.className = 'close-btn';
-            closeBtn.innerHTML = '×';
-            closeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.closeContainer(container.id);
-            });
+            const visibleContainers = this.containers.filter(c => 
+                (c.parentId || null) === this.currentFolderId
+            );
             
-            if (!container.expanded) {
-                const dragHandle = document.createElement('div');
-                dragHandle.className = 'drag-handle';
-                div.appendChild(dragHandle);
-            }
-
-            const title = document.createElement('div');
-            title.className = 'container-title';
-            title.contentEditable = true;
-            title.textContent = container.title;
-            
-            title.addEventListener('input', () => {
-                this.updateContainer(container.id, 'title', title.textContent);
-            });
-            
-            title.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
-            
-            title.addEventListener('mousedown', (e) => {
-                e.stopPropagation();
-                clearTimeout(this.pressTimer); 
-            });
-            
-            title.addEventListener('mouseup', (e) => {
-                e.stopPropagation();
-            });
-            
-            title.addEventListener('focus', (e) => {
-                e.stopPropagation();
-            });
-            
-            if (isFolder && !container.expanded) {
-                const folderChildren = this.getFolderChildren(container.id, 4);
-                const hasContent = folderChildren.length > 0;
+            visibleContainers.forEach((container, index) => {
+                const div = document.createElement('div');
+                const isSelected = this.selectedContainer === container.id;
+                const isFolder = container.type === 'folder';
                 
-                if (hasContent) {
-                    div.classList.add('has-content');
-                }
+                const isHidden = this.hiddenContents.has(container.id);
+                div.className = `container ${isFolder ? 'folder' : ''} ${container.expanded ? 'expanded' : ''} ${isSelected ? 'selected' : ''} ${isHidden ? 'content-hidden' : ''}`;
+                div.dataset.id = container.id;
                 
-                const folderIcon = document.createElement('img');
-                folderIcon.src = 'img/folder.png';
-                folderIcon.className = 'folder-icon';
-                
-                if (hasContent && !isHidden) {
-                const preview = document.createElement('div');
-                preview.className = 'folder-preview';
-                
-                folderChildren.forEach(child => {
-                    const previewItem = document.createElement('div');
-                    previewItem.className = `folder-preview-item ${child.type === 'folder' ? 'is-folder' : ''}`;
-                    
-                    const previewTitle = document.createElement('div');
-                    previewTitle.className = 'folder-preview-item-title';
-                    previewTitle.textContent = child.title || (child.type === 'folder' ? 'Untitled Folder' : 'Untitled');
-                    
-                    previewItem.appendChild(previewTitle);
-                    
-                    if (child.type === 'folder') {
-                        const icon = document.createElement('img');
-                        icon.src = 'img/folder.png';
-                        icon.className = 'folder-preview-item-icon';
-                        previewItem.appendChild(icon);
-                    } else {
-                        const previewContent = document.createElement('div');
-                        previewContent.className = 'folder-preview-item-content';
-                        previewContent.innerHTML = child.content || 'Empty';
-                        previewItem.appendChild(previewContent);
-                    }
-                    
-                    preview.appendChild(previewItem);
-                });
-                
-                div.appendChild(title);
-                div.appendChild(preview);
-            } else {
-                div.appendChild(title);
-                div.appendChild(folderIcon);
-            }
-                
-            const timestamp = document.createElement('div');
-            timestamp.className = 'container-timestamp';
-            const lastModified = this.getLastModifiedInFolder(container.id);
-            timestamp.textContent = this.formatDate(lastModified || container.lastModified);
-            div.appendChild(timestamp);
-                
-                div.addEventListener('mousedown', (e) => {
-                    if (e.target === title || title.contains(e.target)) {
-                        return; 
-                    }
-                    this.handlePressStart(container.id, e);
-                });
-                
-                div.addEventListener('mouseup', (e) => {
-                    if (e.target === title || title.contains(e.target)) {
-                        return; 
-                    }
-                    this.handlePressEnd(container.id, e);
-                });
-                
-                div.addEventListener('mouseleave', () => {
-                    clearTimeout(this.pressTimer);
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'close-btn';
+                closeBtn.innerHTML = '×';
+                closeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.closeContainer(container.id);
                 });
                 
                 if (!container.expanded) {
-                div.addEventListener('click', (e) => {
+                    const dragHandle = document.createElement('div');
+                    dragHandle.className = 'drag-handle';
+                    div.appendChild(dragHandle);
+                }
+    
+                const title = document.createElement('div');
+                title.className = 'container-title';
+                title.contentEditable = true;
+                title.textContent = container.title;
+                
+                title.addEventListener('input', () => {
+                    this.updateContainer(container.id, 'title', title.textContent);
+                });
+                
+                title.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+                
+                title.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    clearTimeout(this.pressTimer); 
+                });
+                
+                title.addEventListener('mouseup', (e) => {
+                    e.stopPropagation();
+                });
+                
+                title.addEventListener('focus', (e) => {
+                    e.stopPropagation();
+                });
+                
+                if (isFolder && !container.expanded) {
+                    const folderChildren = this.getFolderChildren(container.id, 4);
+                    const hasContent = folderChildren.length > 0;
+                    
+                    if (hasContent) {
+                        div.classList.add('has-content');
+                    }
+                    
+                    const folderIcon = document.createElement('img');
+                    folderIcon.src = 'img/folder.png';
+                    folderIcon.className = 'folder-icon';
+                    
+                    if (hasContent && !isHidden) {
+                    const preview = document.createElement('div');
+                    preview.className = 'folder-preview';
+                    
+                    folderChildren.forEach(child => {
+                        const previewItem = document.createElement('div');
+                        previewItem.className = `folder-preview-item ${child.type === 'folder' ? 'is-folder' : ''}`;
+                        
+                        const previewTitle = document.createElement('div');
+                        previewTitle.className = 'folder-preview-item-title';
+                        previewTitle.textContent = child.title || (child.type === 'folder' ? 'Untitled Folder' : 'Untitled');
+                        
+                        previewItem.appendChild(previewTitle);
+                        
+                        if (child.type === 'folder') {
+                            const icon = document.createElement('img');
+                            icon.src = 'img/folder.png';
+                            icon.className = 'folder-preview-item-icon';
+                            previewItem.appendChild(icon);
+                        } else {
+                            const previewContent = document.createElement('div');
+                            previewContent.className = 'folder-preview-item-content';
+                            previewContent.innerHTML = child.content || 'Empty';
+                            previewItem.appendChild(previewContent);
+                        }
+                        
+                        preview.appendChild(previewItem);
+                    });
+                    
+                    div.appendChild(title);
+                    div.appendChild(preview);
+                } else {
+                    div.appendChild(title);
+                    div.appendChild(folderIcon);
+                }
+                    
+                const timestamp = document.createElement('div');
+                timestamp.className = 'container-timestamp';
+                const lastModified = this.getLastModifiedInFolder(container.id);
+                timestamp.textContent = this.formatDate(lastModified || container.lastModified);
+                div.appendChild(timestamp);
+                    
+                    div.addEventListener('click', (e) => {
+                        if (this.isDragging) return;
+                        
+                        if (e.target.closest('.drag-handle')) {
+                            return;
+                        }
+                        
+                        if (e.target === title || title.contains(e.target)) {
+                            return;
+                        }
+                        
+                        if (isFolder) {
+                            this.openFolder(container.id);
+                        } else {
+                            this.expandContainer(container.id);
+                        }
+                    });
+                    
+                } else {
+                    const content = document.createElement('div');
+                    content.className = 'container-content';
+                    content.contentEditable = container.expanded;
+                    content.innerHTML = container.content || '';
+                    
+                    this.attachCheckboxListeners(content, container.id);
+                    
+                    if (container.expanded) {
+                        this.setupCheckboxEnterKey(content, container.id);
+                        this.setupBulletEnterKey(content, container.id);
+                        this.preventBulletFormatting(content);
+                        this.setupNumberEnterKey(content, container.id);
+                        this.preventNumberFormatting(content);
+                    }
+                    
+                    div.addEventListener('click', (e) => {
                     if (this.isDragging) return;
-                    
-                    if (e.target.closest('.drag-handle')) {
-                        return;
-                    }
-                    
-                    if (e.target === title || title.contains(e.target)) {
-                        return;
-                    }
-                    
-                    if (isFolder) {
-                        this.openFolder(container.id);
-                    } else {
+                    if (e.target.closest('.drag-handle')) return;
+                    if (e.target === title || title.contains(e.target)) return;
+                    if (!container.expanded) {
                         this.expandContainer(container.id);
                     }
                 });
-            }
-                
-            } else {
-                const content = document.createElement('div');
-                content.className = 'container-content';
-                content.contentEditable = container.expanded;
-                content.innerHTML = container.content || '';
-                
-                this.attachCheckboxListeners(content, container.id);
-                
-                if (container.expanded) {
-                    this.setupCheckboxEnterKey(content, container.id);
-                    this.setupBulletEnterKey(content, container.id);
-                    this.preventBulletFormatting(content);
-                    this.setupNumberEnterKey(content, container.id);
-                    this.preventNumberFormatting(content);
+    
+                    content.addEventListener('input', () => {
+                        this.updateContainer(container.id, 'content', content.innerHTML);
+                    });
+                    
+                    if (container.expanded) {
+                        const metadata = document.createElement('div');
+                        metadata.className = 'container-metadata';
+                        const charCount = this.getCharCount(container.content || '');
+                        metadata.textContent = `${this.formatDate(container.lastModified)} | ${charCount} characters`;
+                        
+                        div.appendChild(closeBtn);
+                        div.appendChild(title);
+                        div.appendChild(metadata);
+                        div.appendChild(content);
+                    } else {
+                        const timestamp = document.createElement('div');
+                        timestamp.className = 'container-timestamp';
+                        timestamp.textContent = this.formatDate(container.lastModified);
+                        
+                        div.appendChild(closeBtn);
+                        div.appendChild(title);
+                        div.appendChild(content);
+                        div.appendChild(timestamp);
+                    }
+                    
+                    if (container.expanded) {
+                        const placeholder = document.createElement('div');
+                        placeholder.className = 'container';
+                        placeholder.style.pointerEvents = 'none';
+                        
+                        const placeholderTitle = document.createElement('div');
+                        placeholderTitle.className = 'container-title';
+                        placeholderTitle.textContent = container.title;
+                        
+                        const placeholderContent = document.createElement('div');
+                        placeholderContent.className = 'container-content';
+                        placeholderContent.innerHTML = container.content || '';
+                        
+                        const placeholderTimestamp = document.createElement('div');
+                        placeholderTimestamp.className = 'container-timestamp';
+                        placeholderTimestamp.textContent = this.formatDate(container.lastModified);
+                        
+                        placeholder.appendChild(placeholderTitle);
+                        placeholder.appendChild(placeholderContent);
+                        placeholder.appendChild(placeholderTimestamp);
+                        
+                        wrapper.appendChild(placeholder);
+                    }
                 }
-                
                 if (!container.expanded) {
-                    div.addEventListener('mousedown', (e) => {
-                        this.handlePressStart(container.id, e);
-                    });
-                    
-                    div.addEventListener('mouseup', (e) => {
-                        this.handlePressEnd(container.id, e);
-                    });
-                    
-                    div.addEventListener('mouseleave', () => {
-                        clearTimeout(this.pressTimer);
-                    });
-                    
-                    div.addEventListener('touchstart', (e) => {
-                        this.handlePressStart(container.id, e);
-                    });
-                    
-                    div.addEventListener('touchend', (e) => {
-                        this.handlePressEnd(container.id, e);
-                    });
+                    this.setupDragHandle(div, container.id);
                 }
-                
-                content.addEventListener('input', () => {
-                    this.updateContainer(container.id, 'content', content.innerHTML);
-                });
-                
-                if (container.expanded) {
-                    const metadata = document.createElement('div');
-                    metadata.className = 'container-metadata';
-                    const charCount = this.getCharCount(container.content || '');
-                    metadata.textContent = `${this.formatDate(container.lastModified)} | ${charCount} characters`;
-                    
-                    div.appendChild(closeBtn);
-                    div.appendChild(title);
-                    div.appendChild(metadata);
-                    div.appendChild(content);
-                } else {
-                    const timestamp = document.createElement('div');
-                    timestamp.className = 'container-timestamp';
-                    timestamp.textContent = this.formatDate(container.lastModified);
-                    
-                    div.appendChild(closeBtn);
-                    div.appendChild(title);
-                    div.appendChild(content);
-                    div.appendChild(timestamp);
-                }
-                
-                if (container.expanded) {
-                    const placeholder = document.createElement('div');
-                    placeholder.className = 'container';
-                    placeholder.style.pointerEvents = 'none';
-                    
-                    const placeholderTitle = document.createElement('div');
-                    placeholderTitle.className = 'container-title';
-                    placeholderTitle.textContent = container.title;
-                    
-                    const placeholderContent = document.createElement('div');
-                    placeholderContent.className = 'container-content';
-                    placeholderContent.innerHTML = container.content || '';
-                    
-                    const placeholderTimestamp = document.createElement('div');
-                    placeholderTimestamp.className = 'container-timestamp';
-                    placeholderTimestamp.textContent = this.formatDate(container.lastModified);
-                    
-                    placeholder.appendChild(placeholderTitle);
-                    placeholder.appendChild(placeholderContent);
-                    placeholder.appendChild(placeholderTimestamp);
-                    
-                    wrapper.appendChild(placeholder);
-                }
-            }
-            if (!container.expanded) {
-                this.setupDragHandle(div, container.id);
-            }
-            wrapper.appendChild(div);
-        });
-        
-        this.updateBreadcrumb();
+                wrapper.appendChild(div);
+            });
+            
+            this.updateBreadcrumb();
     }            
     updateEmptyState() {
         const emptyState = document.querySelector('.empty-state');
