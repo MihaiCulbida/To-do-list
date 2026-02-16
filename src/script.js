@@ -1010,7 +1010,11 @@ class TodoApp {
             });
             
             input.click();
-    } else if (action === 'checkbox') {
+        } else if (action === 'checkbox') {
+        if (!selectedText) {
+            return;
+        }
+        
         const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
         if (range) {
             const isInContent = contentElement.contains(range.commonAncestorContainer);
@@ -1037,19 +1041,21 @@ class TodoApp {
             } else {
                 this.addCheckboxToSelection(contentElement, selection);
             }
-        } else {
-            this.addCheckboxes(contentElement);
         }
         this.updateContainer(this.activeContainer, 'content', contentElement.innerHTML);
-    } else if (action === 'dotlist') {
-        const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-        if (range) {
-            const isInContent = contentElement.contains(range.commonAncestorContainer);
-            
-            if (!isInContent) {
+        } else if (action === 'dotlist') {
+            if (!selectedText) {
                 return;
             }
-        }
+            
+            const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+            if (range) {
+                const isInContent = contentElement.contains(range.commonAncestorContainer);
+                
+                if (!isInContent) {
+                    return;
+                }
+            }
         
         if (selectedText) {
             let node = range.commonAncestorContainer;
@@ -1068,19 +1074,21 @@ class TodoApp {
             } else {
                 this.addBulletToSelection(contentElement, selection);
             }
-        } else {
-            this.addBullets(contentElement);
         }
         this.updateContainer(this.activeContainer, 'content', contentElement.innerHTML);
-    } else if (action === 'numberlist') {
-        const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
-        if (range) {
-            const isInContent = contentElement.contains(range.commonAncestorContainer);
-            
-            if (!isInContent) {
+        } else if (action === 'numberlist') {
+            if (!selectedText) {
                 return;
             }
-        }
+            
+            const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+            if (range) {
+                const isInContent = contentElement.contains(range.commonAncestorContainer);
+                
+                if (!isInContent) {
+                    return;
+                }
+            }
         
         if (selectedText) {
             let node = range.commonAncestorContainer;
@@ -1099,8 +1107,6 @@ class TodoApp {
             } else {
                 this.addNumberToSelection(contentElement, selection);
             }
-        } else {
-            this.addNumbers(contentElement);
         }
         this.updateContainer(this.activeContainer, 'content', contentElement.innerHTML);
     }
