@@ -894,6 +894,11 @@ class TodoApp {
         } else {
             toolbar.classList.remove('show');
             
+            const textButtons = document.querySelectorAll('.toolbar-btn.text-formatting');
+            textButtons.forEach(btn => {
+                btn.classList.remove('visible');
+            });
+            
             setTimeout(() => {
                 if (!this.activeContainer) {
                     toolbar.style.display = 'none';

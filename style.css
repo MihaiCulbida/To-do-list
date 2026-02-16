@@ -435,17 +435,19 @@ strong {
 }
 
 .toolbar-btn.text-formatting:not(.visible) {
+    position: absolute;
     width: 0;
     max-width: 0;
     padding: 0;
     margin: 0;
-    margin-left: -8px; 
     opacity: 0;
     overflow: hidden;
+    pointer-events: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .toolbar-btn.text-formatting.visible {
+    position: relative;
     max-width: 50px;
     padding: 10px 10px;
     opacity: 1;
@@ -598,12 +600,12 @@ strong {
     gap: 10px;
     z-index: 1000;
     border: 2px solid rgba(255, 215, 100, 0.3);
-    max-width: 80%; /* ADAUGĂ */
-    overflow-x: auto; /* ADAUGĂ */
-    white-space: nowrap; /* ADAUGĂ */
+    max-width: 80%;
+    overflow-x: auto;
+    white-space: nowrap;
 }
 
-.breadcrumb::-webkit-scrollbar { /* ADAUGĂ pentru scroll frumos */
+.breadcrumb::-webkit-scrollbar {
     height: 6px;
 }
 
@@ -907,4 +909,307 @@ strong {
     box-shadow: 0 0 20px rgba(255, 160, 0, 0.4);
     background: linear-gradient(135deg, #FFF4D0 0%, #FFE9B3 100%);
     transition: all 0.2s ease;
+}
+
+@media only screen and (max-width: 1024px) {
+    body {
+        padding: 30px 15px;
+    }
+    
+    .containers-wrapper {
+        gap: 15px;
+        padding-top: 30px;
+        padding-bottom: 90px;
+        justify-content: flex-start;
+    }
+    
+    .container {
+        width: calc(33.333% - 10px);
+        max-width: 220px;
+        min-width: 180px;
+    }
+    
+    .breadcrumb {
+        max-width: 85%;
+        padding: 10px 20px;
+    }
+}
+
+@media only screen and (max-width: 768px) {
+    body {
+        padding: 20px 10px;
+    }
+    
+    .containers-wrapper {
+        gap: 12px;
+        padding-top: 50px;
+        padding-bottom: 80px;
+        justify-content: flex-start;
+    }
+    
+    .container {
+        width: calc(50% - 6px);
+        max-width: 220px;
+        min-width: 150px;
+        height: 240px;
+        padding: 15px;
+    }
+    
+    .container-title {
+        font-size: 18px;
+    }
+    
+    .container-content {
+        font-size: 14px;
+    }
+    
+    .container.expanded {
+        width: 95%;
+        height: 90vh;
+        padding: 20px;
+    }
+    
+    .add-button {
+        width: 55px;
+        height: 55px;
+        bottom: 20px;
+        right: 20px;
+        font-size: 28px;
+    }
+    
+    .delete-button {
+        width: 55px;
+        height: 55px;
+        bottom: 20px;
+        right: 90px;
+    }
+    
+    #deleteImage {
+        width: 26px;
+        height: 26px;
+    }
+    
+    .hide-content-button {
+        width: 55px;
+        height: 55px;
+        bottom: 20px;
+        right: 160px;
+    }
+    
+    #hideContentImage {
+        width: 26px;
+        height: 26px;
+    }
+    
+    .back-button {
+        width: 45px;
+        height: 45px;
+        top: 20px;
+        left: 20px;
+    }
+    
+    #backImage {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .breadcrumb {
+        max-width: 90%;
+        padding: 8px 16px;
+        top: 15px;
+        font-size: 13px;
+    }
+    
+    .breadcrumb-item {
+        font-size: 13px;
+    }
+    
+    .type-selector-content {
+        padding: 30px 25px;
+        gap: 20px;
+        flex-direction: column;
+    }
+    
+    .type-option {
+        padding: 25px 35px;
+        min-width: 140px;
+    }
+    
+    .type-option img {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .type-option span {
+        font-size: 17px;
+    }
+    
+    .confirm-dialog {
+        min-width: 280px;
+        padding: 25px;
+    }
+    
+    .confirm-dialog-text {
+        font-size: 16px;
+    }
+    
+    .confirm-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+    
+    .folder-preview-item {
+        height: 60px;
+    }
+    
+    .folder-icon {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .drop-zone {
+        width: calc(50% - 6px);
+        min-width: 150px;
+        height: 240px;
+    }
+    
+    .drag-ghost {
+        width: calc(50% - 6px);
+        min-width: 150px;
+        height: 240px;
+    }
+
+    .empty-state {
+        font-size: 22px;
+    }
+
+    .toolbar {
+        bottom: auto;
+        left: auto;
+        right: 20px;
+        top: 50%;
+        transform: translateX(100px) translateY(-50%);
+        flex-direction: column;
+        padding: 8px;
+        border-radius: 25px;
+        gap: 6px;
+    }
+    
+    .toolbar.show {
+        transform: translateX(0) translateY(-50%);
+    }
+    
+    .toolbar-btn {
+        padding: 8px;
+        width: 40px;
+        height: 40px;
+        justify-content: center;
+    }
+    
+    .toolbar-btn .icon {
+        height: 20px;
+        width: 20px;
+    }
+    
+    .toolbar-btn.text-formatting:not(.visible) {
+        height: 0;
+        max-height: 0;
+        padding: 0;
+        margin: 0;
+        opacity: 0;
+        overflow: hidden;
+        display: none;
+    }
+    
+    .toolbar-btn.text-formatting.visible {
+        display: flex;
+        max-height: 40px;
+        height: 40px;
+        padding: 8px;
+        opacity: 1;
+    }
+}
+
+@media only screen and (max-width: 480px) {
+    .container {
+        width: calc(50% - 6px);
+        min-width: 140px;
+        max-width: none;
+    }
+    
+    .containers-wrapper {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+    
+    .breadcrumb {
+        max-width: 95%;
+    }
+
+    .type-selector-content {
+        padding: 25px 20px;
+    }
+    
+    .type-option {
+        width: 100%;
+        padding: 20px 30px;
+    }
+    
+    .drop-zone {
+        width: calc(50% - 6px);
+        min-width: 140px;
+    }
+    
+    .drag-ghost {
+        width: calc(50% - 6px);
+        min-width: 140px;
+    }
+
+    .toolbar {
+        bottom: auto;
+        left: auto;
+        right: 15px;
+        top: 50%;
+        transform: translateX(100px) translateY(-50%);
+        flex-direction: column;
+        padding: 6px;
+        border-radius: 20px;
+        gap: 5px;
+    }
+    
+    .toolbar.show {
+        transform: translateX(0) translateY(-50%);
+    }
+    
+    .toolbar-btn {
+        padding: 7px;
+        width: 36px;
+        height: 36px;
+        justify-content: center;
+    }
+    
+    .toolbar-btn .icon {
+        height: 18px;
+        width: 18px;
+    }
+    
+    .toolbar-btn.text-formatting:not(.visible) {
+        position: absolute;
+        height: 0;
+        max-height: 0;
+        padding: 0;
+        margin: 0;
+        opacity: 0;
+        overflow: hidden;
+        pointer-events: none;
+    }
+    
+    .toolbar-btn.text-formatting.visible {
+        position: relative;
+        max-height: 36px;
+        height: 36px;
+        padding: 7px;
+        opacity: 1;
+    }
 }
