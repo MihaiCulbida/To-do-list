@@ -1653,7 +1653,6 @@ class TodoApp {
             }
         });
     }
-    
     preventNumberFormatting(element) {
         element.addEventListener('input', (e) => {
             const numbers = element.querySelectorAll('.number-point');
