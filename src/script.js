@@ -3,7 +3,8 @@ class TodoApp {
         this.containers = [];
         this.folders = [];
         this.activeContainer = null;
-        this.selectedContainer = null;
+        this.selectedContainers = new Set(); 
+        this.selectionMode = false;
         this.pressTimer = null;
         this.currentFolderId = null; 
         this.folderHistory = [];
@@ -54,25 +55,30 @@ class TodoApp {
             }
         });
         
+        document.getElementById('selectionCancelBtn').addEventListener('click', () => {
+            this.exitSelectionMode();
+        });
+        
         document.getElementById('deleteButton').addEventListener('click', () => {
-            if (this.selectedContainer) {
+            if (this.selectedContainers.size > 0) {
                 this.showConfirmDialog();
             }
         });
-
+        
         document.getElementById('hideContentButton').addEventListener('click', () => {
-            if (this.selectedContainer) {
-                this.toggleContentVisibility(this.selectedContainer);
+            if (this.selectedContainers.size > 0) {
+                this.selectedContainers.forEach(id => this.toggleContentVisibility(id));
+                this.updateActionButtons();
             }
         });
-    
+        
         document.getElementById('confirmYes').addEventListener('click', () => {
-            if (this.selectedContainer) {
-                this.deleteContainer(this.selectedContainer);
-            }
+            this.selectedContainers.forEach(id => this.deleteContainer(id));
+            this.selectedContainers.clear();
+            this.exitSelectionMode();
             this.hideConfirmDialog();
         });
-    
+        
         document.getElementById('confirmNo').addEventListener('click', () => {
             this.hideConfirmDialog();
         });
@@ -235,23 +241,9 @@ class TodoApp {
         });
     }
 
-    selectContainer(id) {
-        if (this.isDragging) return;
-        
-        if (this.selectedContainer === id) {
-            this.selectedContainer = null;
-        } else {
-            this.selectedContainer = id;
-        }
-        
-        this.updateDeleteButton();
-        this.updateHideContentButton();
-        this.render();
-    }
 
     expandContainer(id) {
         this.collapseAll();
-        this.selectedContainer = null;
         const container = this.containers.find(c => c.id === id);
         if (container) {
             container.expanded = true;
@@ -297,7 +289,6 @@ class TodoApp {
         }
         
         this.containers = this.containers.filter(c => c.id !== id);
-        this.selectedContainer = null;
         
         if (parentId) {
             this.updateFolderTimestamps(parentId);
@@ -310,16 +301,22 @@ class TodoApp {
     }
 
     showConfirmDialog() {
-        const container = this.containers.find(c => c.id === this.selectedContainer);
-        const isFolder = container && container.type === 'folder';
+        const count = this.selectedContainers.size;
+        const hasFolder = [...this.selectedContainers].some(id => {
+            const c = this.containers.find(x => x.id === id);
+            return c && c.type === 'folder';
+        });
+    
         const dialogText = document.querySelector('.confirm-dialog-text');
-        
-        if (isFolder) {
+    
+        if (count > 1) {
+            dialogText.textContent = `Are you sure you want to delete ${count} items?`;
+        } else if (hasFolder) {
             dialogText.textContent = 'Are you sure you want to delete this folder and all its contents?';
         } else {
             dialogText.textContent = 'Are you sure you want to delete this container?';
         }
-        
+    
         document.getElementById('confirmDialog').classList.add('show');
         document.getElementById('overlay').classList.add('show');
     }
@@ -434,10 +431,6 @@ class TodoApp {
                 document.removeEventListener('touchmove', moveDetect);
                 document.removeEventListener('mouseup', endDetect);
                 document.removeEventListener('touchend', endDetect);
-                
-                if (!isDragAction) {
-                    this.selectContainer(containerId);
-                }
             };
             
             document.addEventListener('mousemove', moveDetect);
@@ -453,7 +446,6 @@ class TodoApp {
     startDrag(containerId, event) {
         this.draggedContainer = containerId;
         this.isDragging = true;
-        this.selectedContainer = null;
         this.lastValidDropTarget = null;
         
         const containerElement = document.querySelector(`[data-id="${containerId}"]`);
@@ -841,37 +833,9 @@ class TodoApp {
             metadataElement.textContent = `${this.formatDate(container.lastModified)} | ${charCount} characters`;
         }
     }
-    updateDeleteButton() {
-        const deleteBtn = document.getElementById('deleteButton');
-        deleteBtn.classList.toggle('active', this.selectedContainer !== null);
-    }
-    updateHideContentButton() {
-        const hideBtn = document.getElementById('hideContentButton');
-        const hideImg = document.getElementById('hideContentImage');
-        
-        if (this.selectedContainer) {
-            const container = this.containers.find(c => c.id === this.selectedContainer);
-            const isFolder = container && container.type === 'folder';
-            
-            if (isFolder) {
-                const hasContent = this.containers.some(c => c.parentId === this.selectedContainer);
-                
-                if (hasContent) {
-                    hideBtn.classList.add('active');
-                    const isHidden = this.hiddenContents.has(this.selectedContainer);
-                    hideImg.src = isHidden ? 'img/visible1.png' : 'img/visible.png';
-                } else {
-                    hideBtn.classList.remove('active');
-                }
-            } else {
-                hideBtn.classList.add('active');
-                const isHidden = this.hiddenContents.has(this.selectedContainer);
-                hideImg.src = isHidden ? 'img/visible1.png' : 'img/visible.png';
-            }
-        } else {
-            hideBtn.classList.remove('active');
-        }
-    }
+        updateDeleteButton() { this.updateActionButtons(); }
+        updateHideContentButton() { this.updateActionButtons(); }
+
     toggleContentVisibility(id) {
         if (this.hiddenContents.has(id)) {
             this.hiddenContents.delete(id);
@@ -881,6 +845,64 @@ class TodoApp {
         this.saveHiddenContents();
         this.render();
         this.updateHideContentButton();
+    }
+        enterSelectionMode(id) {
+        this.selectionMode = true;
+        this.selectedContainers.add(id);
+        document.getElementById('containersWrapper').classList.add('selection-mode');
+        document.getElementById('selectionCancelBtn').classList.add('show');
+        this.render();
+        this.updateActionButtons();
+    }
+    
+    exitSelectionMode() {
+        this.selectionMode = false;
+        this.selectedContainers.clear();
+        document.getElementById('containersWrapper').classList.remove('selection-mode');
+        document.getElementById('selectionCancelBtn').classList.remove('show');
+        this.render();
+        this.updateActionButtons();
+    }
+    
+    toggleSelectContainer(id) {
+        if (this.selectedContainers.has(id)) {
+            this.selectedContainers.delete(id);
+        } else {
+            this.selectedContainers.add(id);
+        }
+        if (this.selectedContainers.size === 0) {
+            this.exitSelectionMode();
+            return;
+        }
+        this.render();
+        this.updateActionButtons();
+    }
+    
+    updateActionButtons() {
+        const hasSelection = this.selectedContainers.size > 0;
+        document.getElementById('deleteButton').classList.toggle('active', hasSelection);
+    
+        const hideBtn = document.getElementById('hideContentButton');
+        const hideImg = document.getElementById('hideContentImage');
+    
+        if (hasSelection) {
+            let canToggle = true;
+            let anyHidden = false;
+    
+            this.selectedContainers.forEach(id => {
+                const container = this.containers.find(c => c.id === id);
+                if (container && container.type === 'folder') {
+                    const hasChildren = this.containers.some(c => c.parentId === id);
+                    if (!hasChildren) canToggle = false;
+                }
+                if (this.hiddenContents.has(id)) anyHidden = true;
+            });
+    
+            hideBtn.classList.toggle('active', canToggle);
+            hideImg.src = anyHidden ? 'img/visible1.png' : 'img/visible.png';
+        } else {
+            hideBtn.classList.remove('active');
+        }
     }
     updateToolbar() {
         const toolbar = document.getElementById('toolbar');
@@ -1909,14 +1931,20 @@ class TodoApp {
             
             visibleContainers.forEach((container, index) => {
                 const div = document.createElement('div');
-                const isSelected = this.selectedContainer === container.id;
                 const isFolder = container.type === 'folder';
                 
                 const isHidden = this.hiddenContents.has(container.id);
-                div.className = `container ${isFolder ? 'folder' : ''} ${container.expanded ? 'expanded' : ''} ${isSelected ? 'selected' : ''} ${isHidden ? 'content-hidden' : ''}`;
+                div.className = `container ${isFolder ? 'folder' : ''} ${container.expanded ? 'expanded' : ''} ${isHidden ? 'content-hidden' : ''}`;
                 div.dataset.id = container.id;
                 
                 const closeBtn = document.createElement('button');
+                const selectionCheck = document.createElement('div');
+                selectionCheck.className = 'selection-check';
+                div.appendChild(selectionCheck);
+                
+                if (this.selectedContainers.has(container.id)) {
+                    div.classList.add('selected');
+                }
                 closeBtn.className = 'close-btn';
                 closeBtn.innerHTML = '×';
                 closeBtn.addEventListener('click', (e) => {
@@ -2010,24 +2038,66 @@ class TodoApp {
                 timestamp.textContent = this.formatDate(lastModified || container.lastModified);
                 div.appendChild(timestamp);
                     
-                    div.addEventListener('click', (e) => {
-                        if (this.isDragging) return;
-                        
-                        if (e.target.closest('.drag-handle')) {
-                            return;
+                    let pressTimer = null;
+
+                div.addEventListener('mousedown', (e) => {
+                    if (this.isDragging) return;
+                    if (e.target.closest('.drag-handle')) return;
+                    if (e.target === title || title.contains(e.target)) return;
+                
+                    pressTimer = setTimeout(() => {
+                        pressTimer = null;
+                        if (!this.selectionMode) {
+                            this.enterSelectionMode(container.id);
                         }
-                        
-                        if (e.target === title || title.contains(e.target)) {
-                            return;
-                        }
-                        
-                        if (isFolder) {
-                            this.openFolder(container.id);
-                        } else {
-                            this.expandContainer(container.id);
-                        }
-                    });
-                    
+                    }, 500);
+                });
+                
+                div.addEventListener('mouseup', (e) => {
+                    if (!pressTimer) return;
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                    if (this.isDragging) return;
+                    if (e.target.closest('.drag-handle')) return;
+                    if (e.target === title || title.contains(e.target)) return;
+                
+                    if (this.selectionMode) {
+                        this.toggleSelectContainer(container.id);
+                    } else {
+                        this.openFolder(container.id);
+                    }
+                });
+                
+                div.addEventListener('mouseleave', () => {
+                    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+                });
+                
+                div.addEventListener('touchstart', (e) => {
+                    if (e.target.closest('.drag-handle')) return;
+                    if (e.target === title || title.contains(e.target)) return;
+                    pressTimer = setTimeout(() => {
+                        pressTimer = null;
+                        if (!this.selectionMode) this.enterSelectionMode(container.id);
+                    }, 500);
+                }, { passive: true });
+                
+                div.addEventListener('touchend', (e) => {
+                    if (!pressTimer) return;
+                    clearTimeout(pressTimer);
+                    pressTimer = null;
+                    if (e.target.closest('.drag-handle')) return;
+                    if (e.target === title || title.contains(e.target)) return;
+                    if (this.selectionMode) {
+                        this.toggleSelectContainer(container.id);
+                    } else {
+                        this.openFolder(container.id);
+                    }
+                });
+                
+                div.addEventListener('touchmove', () => {
+                    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+                });
+                                    
                 } else {
                     const content = document.createElement('div');
                     content.className = 'container-content';
@@ -2044,14 +2114,69 @@ class TodoApp {
                         this.preventNumberFormatting(content);
                     }
                     
-                    div.addEventListener('click', (e) => {
-                    if (this.isDragging) return;
-                    if (e.target.closest('.drag-handle')) return;
-                    if (e.target === title || title.contains(e.target)) return;
-                    if (!container.expanded) {
-                        this.expandContainer(container.id);
-                    }
-                });
+                    let pressTimer = null;
+
+                    div.addEventListener('mousedown', (e) => {
+                        if (container.expanded) return;
+                        if (this.isDragging) return;
+                        if (e.target.closest('.drag-handle')) return;
+                        if (e.target === title || title.contains(e.target)) return;
+                    
+                        pressTimer = setTimeout(() => {
+                            pressTimer = null;
+                            if (!this.selectionMode) {
+                                this.enterSelectionMode(container.id);
+                            }
+                        }, 500);
+                    });
+                    
+                    div.addEventListener('mouseup', (e) => {
+                        if (container.expanded) return;
+                        if (!pressTimer) return;
+                        clearTimeout(pressTimer);
+                        pressTimer = null;
+                        if (this.isDragging) return;
+                        if (e.target.closest('.drag-handle')) return;
+                        if (e.target === title || title.contains(e.target)) return;
+                    
+                        if (this.selectionMode) {
+                            this.toggleSelectContainer(container.id);
+                        } else {
+                            this.expandContainer(container.id);
+                        }
+                    });
+                    
+                    div.addEventListener('mouseleave', () => {
+                        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+                    });
+                    
+                    div.addEventListener('touchstart', (e) => {
+                        if (container.expanded) return;
+                        if (e.target.closest('.drag-handle')) return;
+                        if (e.target === title || title.contains(e.target)) return;
+                        pressTimer = setTimeout(() => {
+                            pressTimer = null;
+                            if (!this.selectionMode) this.enterSelectionMode(container.id);
+                        }, 500);
+                    }, { passive: true });
+                    
+                    div.addEventListener('touchend', (e) => {
+                        if (container.expanded) return;
+                        if (!pressTimer) return;
+                        clearTimeout(pressTimer);
+                        pressTimer = null;
+                        if (e.target.closest('.drag-handle')) return;
+                        if (e.target === title || title.contains(e.target)) return;
+                        if (this.selectionMode) {
+                            this.toggleSelectContainer(container.id);
+                        } else {
+                            this.expandContainer(container.id);
+                        }
+                    });
+                    
+                    div.addEventListener('touchmove', () => {
+                        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+                    });
     
                     content.addEventListener('input', () => {
                         this.updateContainer(container.id, 'content', content.innerHTML);
