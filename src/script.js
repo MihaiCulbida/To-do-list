@@ -2238,7 +2238,9 @@ class TodoApp {
                     content.addEventListener('input', () => {
                         this.updateContainer(container.id, 'content', content.innerHTML);
                     });
-                    
+                    content.addEventListener('touchstart', (e) => {
+                        e.stopPropagation();
+                    }, { passive: true });
                     if (container.expanded) {
                         const metadata = document.createElement('div');
                         metadata.className = 'container-metadata';
