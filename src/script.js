@@ -2112,6 +2112,7 @@ class TodoApp {
                     if (touchMoved) return;
                     if (e.target.closest('.drag-handle')) return;
                     if (e.target === title || title.contains(e.target)) return;
+                    if (didLongPress) return; 
                     if (this.selectionMode) {
                         e.preventDefault();
                         this.toggleSelectContainer(container.id);
@@ -2203,6 +2204,7 @@ class TodoApp {
                         if (touchMoved) return;
                         if (e.target.closest('.drag-handle')) return;
                         if (e.target === title || title.contains(e.target)) return;
+                        if (didLongPress) return; 
                         if (this.selectionMode) {
                             e.preventDefault();
                             this.toggleSelectContainer(container.id);
