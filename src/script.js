@@ -2121,6 +2121,7 @@ class TodoApp {
                         e.preventDefault();
                         this.toggleSelectContainer(container.id);
                     } else {
+                        e.preventDefault();
                         this.openFolder(container.id); 
                     }
                 });
