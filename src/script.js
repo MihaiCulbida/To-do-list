@@ -5,6 +5,9 @@ class TodoApp {
         this.activeContainer = null;
         this.selectedContainers = new Set(); 
         this.selectionMode = false;
+        this.justEnteredSelection = false;
+        this.justExitedSelection = false;
+        this.blockClick = false;
         this.pressTimer = null;
         this.currentFolderId = null; 
         this.folderHistory = [];
@@ -847,23 +850,31 @@ class TodoApp {
         this.updateHideContentButton();
     }
         enterSelectionMode(id) {
-        this.selectionMode = true;
-        this.selectedContainers.add(id);
-        document.getElementById('containersWrapper').classList.add('selection-mode');
-        document.getElementById('selectionCancelBtn').classList.add('show');
-        this.render();
-        this.updateActionButtons();
-    }
+            this.selectionMode = true;
+            this.blockClick = true;
+            this.selectedContainers.add(id);
+            document.getElementById('containersWrapper').classList.add('selection-mode');
+            document.getElementById('selectionCancelBtn').classList.add('show');
+            this.render();
+            this.updateActionButtons();
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    this.blockClick = false;
+                });
+            });
+        }
     
-    exitSelectionMode() {
-        this.selectionMode = false;
-        this.selectedContainers.clear();
-        document.getElementById('containersWrapper').classList.remove('selection-mode');
-        document.getElementById('selectionCancelBtn').classList.remove('show');
-        this.render();
-        this.updateActionButtons();
-    }
-    
+        exitSelectionMode() {
+            this.selectionMode = false;
+            this.blockClick = true;
+            this.selectedContainers.clear();
+            document.getElementById('containersWrapper').classList.remove('selection-mode');
+            document.getElementById('selectionCancelBtn').classList.remove('show');
+            this.render();
+            this.updateActionButtons();
+            setTimeout(() => { this.blockClick = false; }, 400);
+        }
+        
     toggleSelectContainer(id) {
         if (this.selectedContainers.has(id)) {
             this.selectedContainers.delete(id);
@@ -1960,7 +1971,7 @@ class TodoApp {
     
                 const title = document.createElement('div');
                 title.className = 'container-title';
-                title.contentEditable = true;
+                title.contentEditable = !this.selectionMode;
                 title.textContent = container.title;
                 
                 title.addEventListener('input', () => {
@@ -2072,30 +2083,46 @@ class TodoApp {
                     if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
                 });
                 
+                let longPressTimer = null;
+                let touchMoved = false;
+                
                 div.addEventListener('touchstart', (e) => {
                     if (e.target.closest('.drag-handle')) return;
                     if (e.target === title || title.contains(e.target)) return;
-                    pressTimer = setTimeout(() => {
-                        pressTimer = null;
-                        if (!this.selectionMode) this.enterSelectionMode(container.id);
+                    touchMoved = false;
+                    if (this.selectionMode) return;
+                    longPressTimer = setTimeout(() => {
+                        longPressTimer = null;
+                        this.enterSelectionMode(container.id);
                     }, 500);
                 }, { passive: true });
                 
+                div.addEventListener('touchmove', () => {
+                    touchMoved = true;
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }, { passive: true });
+                
                 div.addEventListener('touchend', (e) => {
-                    if (!pressTimer) return;
-                    clearTimeout(pressTimer);
-                    pressTimer = null;
+                    clearTimeout(longPressTimer);
+                    const wasLongPress = longPressTimer === null && !touchMoved;
+                    longPressTimer = null;
+                    if (touchMoved) return;
                     if (e.target.closest('.drag-handle')) return;
                     if (e.target === title || title.contains(e.target)) return;
                     if (this.selectionMode) {
+                        e.preventDefault();
                         this.toggleSelectContainer(container.id);
-                    } else {
+                    } else if (!wasLongPress) {
                         this.openFolder(container.id);
                     }
                 });
                 
-                div.addEventListener('touchmove', () => {
-                    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+                div.addEventListener('click', (e) => {
+                    if (this.selectionMode) return;
+                    if (e.target.closest('.drag-handle')) return;
+                    if (e.target === title || title.contains(e.target)) return;
+                    this.openFolder(container.id);
                 });
                                     
                 } else {
@@ -2150,32 +2177,49 @@ class TodoApp {
                         if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
                     });
                     
+                    let longPressTimer = null;
+                    let touchMoved = false;
+                    
                     div.addEventListener('touchstart', (e) => {
                         if (container.expanded) return;
                         if (e.target.closest('.drag-handle')) return;
                         if (e.target === title || title.contains(e.target)) return;
-                        pressTimer = setTimeout(() => {
-                            pressTimer = null;
-                            if (!this.selectionMode) this.enterSelectionMode(container.id);
+                        touchMoved = false;
+                        if (this.selectionMode) return;
+                        longPressTimer = setTimeout(() => {
+                            longPressTimer = null;
+                            this.enterSelectionMode(container.id);
                         }, 500);
+                    }, { passive: true });
+                    
+                    div.addEventListener('touchmove', () => {
+                        touchMoved = true;
+                        clearTimeout(longPressTimer);
+                        longPressTimer = null;
                     }, { passive: true });
                     
                     div.addEventListener('touchend', (e) => {
                         if (container.expanded) return;
-                        if (!pressTimer) return;
-                        clearTimeout(pressTimer);
-                        pressTimer = null;
+                        clearTimeout(longPressTimer);
+                        const wasLongPress = longPressTimer === null && !touchMoved;
+                        longPressTimer = null;
+                        if (touchMoved) return;
                         if (e.target.closest('.drag-handle')) return;
                         if (e.target === title || title.contains(e.target)) return;
                         if (this.selectionMode) {
+                            e.preventDefault();
                             this.toggleSelectContainer(container.id);
-                        } else {
+                        } else if (!wasLongPress) {
                             this.expandContainer(container.id);
                         }
                     });
                     
-                    div.addEventListener('touchmove', () => {
-                        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+                    div.addEventListener('click', (e) => {
+                        if (container.expanded) return;
+                        if (this.selectionMode) return;
+                        if (e.target.closest('.drag-handle')) return;
+                        if (e.target === title || title.contains(e.target)) return;
+                        this.expandContainer(container.id);
                     });
     
                     content.addEventListener('input', () => {
