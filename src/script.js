@@ -2085,14 +2085,17 @@ class TodoApp {
                 
                 let longPressTimer = null;
                 let touchMoved = false;
+                let didLongPress = false;
                 
                 div.addEventListener('touchstart', (e) => {
                     if (e.target.closest('.drag-handle')) return;
                     if (e.target === title || title.contains(e.target)) return;
                     touchMoved = false;
+                    didLongPress = false;
                     if (this.selectionMode) return;
                     longPressTimer = setTimeout(() => {
                         longPressTimer = null;
+                        didLongPress = true;
                         this.enterSelectionMode(container.id);
                     }, 500);
                 }, { passive: true });
@@ -2105,7 +2108,6 @@ class TodoApp {
                 
                 div.addEventListener('touchend', (e) => {
                     clearTimeout(longPressTimer);
-                    const wasLongPress = longPressTimer === null && !touchMoved;
                     longPressTimer = null;
                     if (touchMoved) return;
                     if (e.target.closest('.drag-handle')) return;
@@ -2113,16 +2115,9 @@ class TodoApp {
                     if (this.selectionMode) {
                         e.preventDefault();
                         this.toggleSelectContainer(container.id);
-                    } else if (!wasLongPress) {
+                    } else if (!didLongPress) {
                         this.openFolder(container.id);
                     }
-                });
-                
-                div.addEventListener('click', (e) => {
-                    if (this.selectionMode) return;
-                    if (e.target.closest('.drag-handle')) return;
-                    if (e.target === title || title.contains(e.target)) return;
-                    this.openFolder(container.id);
                 });
                                     
                 } else {
@@ -2179,15 +2174,18 @@ class TodoApp {
                     
                     let longPressTimer = null;
                     let touchMoved = false;
+                    let didLongPress = false;
                     
                     div.addEventListener('touchstart', (e) => {
                         if (container.expanded) return;
                         if (e.target.closest('.drag-handle')) return;
                         if (e.target === title || title.contains(e.target)) return;
                         touchMoved = false;
+                        didLongPress = false;
                         if (this.selectionMode) return;
                         longPressTimer = setTimeout(() => {
                             longPressTimer = null;
+                            didLongPress = true;
                             this.enterSelectionMode(container.id);
                         }, 500);
                     }, { passive: true });
@@ -2201,7 +2199,6 @@ class TodoApp {
                     div.addEventListener('touchend', (e) => {
                         if (container.expanded) return;
                         clearTimeout(longPressTimer);
-                        const wasLongPress = longPressTimer === null && !touchMoved;
                         longPressTimer = null;
                         if (touchMoved) return;
                         if (e.target.closest('.drag-handle')) return;
@@ -2209,19 +2206,10 @@ class TodoApp {
                         if (this.selectionMode) {
                             e.preventDefault();
                             this.toggleSelectContainer(container.id);
-                        } else if (!wasLongPress) {
+                        } else if (!didLongPress) {
                             this.expandContainer(container.id);
                         }
                     });
-                    
-                    div.addEventListener('click', (e) => {
-                        if (container.expanded) return;
-                        if (this.selectionMode) return;
-                        if (e.target.closest('.drag-handle')) return;
-                        if (e.target === title || title.contains(e.target)) return;
-                        this.expandContainer(container.id);
-                    });
-    
                     content.addEventListener('input', () => {
                         this.updateContainer(container.id, 'content', content.innerHTML);
                     });
